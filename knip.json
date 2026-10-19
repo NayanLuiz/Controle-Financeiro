@@ -2,6 +2,7 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "ignoreExportsUsedInFile": true,
   "entry": [
+    "api/index.ts!",
     "src/server/index.ts!",
     "src/client/main.tsx!",
     "src/shared/contracts/index.ts",
@@ -10,6 +11,6 @@
     "tests/**/*.test.tsx",
     "vite.config.ts"
   ],
-  "project": ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
+  "project": ["api/**/*.ts", "src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
   "ignoreDependencies": ["@testing-library/jest-dom"]
 }

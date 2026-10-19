@@ -7,7 +7,8 @@ const rawEnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   APP_PASSWORD: z.string().optional(),
   SESSION_SECRET: z.string().optional(),
-  DATABASE_PATH: z.string().trim().min(1).default('./data/finance.db'),
+  DATABASE_PATH: z.string().trim().min(1).optional(),
+  VERCEL: z.string().optional(),
 });
 
 export interface AppEnv {
@@ -20,10 +21,12 @@ export interface AppEnv {
 
 export function loadEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
   const parsed = rawEnvSchema.parse(raw);
+  const isVercel = parsed.VERCEL === '1';
 
   const appPassword = parsed.APP_PASSWORD?.trim() ?? '';
   if (
     parsed.NODE_ENV === 'production' &&
+    !isVercel &&
     (appPassword.length < 4 || appPassword === 'change-me-strong-password')
   ) {
     throw new Error(
@@ -34,6 +37,7 @@ export function loadEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
   const sessionSecret = parsed.SESSION_SECRET?.trim() ?? '';
   if (
     parsed.NODE_ENV === 'production' &&
+    !isVercel &&
     (sessionSecret.length < 32 || sessionSecret === 'change-me-32-chars-minimum-secret-key')
   ) {
     throw new Error(
@@ -41,11 +45,19 @@ export function loadEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
     );
   }
 
+  const defaultDbPath = isVercel ? '/tmp/finance.db' : './data/finance.db';
+
   return {
     NODE_ENV: parsed.NODE_ENV,
     PORT: parsed.PORT,
-    APP_PASSWORD: appPassword.length > 0 ? appPassword : 'admin123',
-    SESSION_SECRET: sessionSecret.length >= 32 ? sessionSecret : DEFAULT_DEV_SECRET,
-    DATABASE_PATH: parsed.DATABASE_PATH,
+    APP_PASSWORD:
+      appPassword.length >= 4 && appPassword !== 'change-me-strong-password'
+        ? appPassword
+        : 'admin123',
+    SESSION_SECRET:
+      sessionSecret.length >= 32 && sessionSecret !== 'change-me-32-chars-minimum-secret-key'
+        ? sessionSecret
+        : DEFAULT_DEV_SECRET,
+    DATABASE_PATH: parsed.DATABASE_PATH ?? defaultDbPath,
   };
 }

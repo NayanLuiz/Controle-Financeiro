@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-and-build:
+    name: Quality Gate & Bundle Budget (Node 24)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies (clean lockfile)
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run quality gate (lint, typecheck, deadcode, duplication, tests)
+        run: npm run check
+
+      - name: Build production client and server
+        run: npm run build
+
+      - name: Verify initial JS bundle budget <= 170 KB gzip (RNF-3)
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAX_BYTES=$((170 * 1024))
+          TOTAL_GZIP=0
+          shopt -s nullglob
+          JS_FILES=(dist/client/assets/*.js)
+          if [ ${#JS_FILES[@]} -eq 0 ]; then
+            echo "::error::No JavaScript assets found in dist/client/assets/"
+            exit 1
+          fi
+          for file in "${JS_FILES[@]}"; do
+            GZIP_SIZE=$(gzip -c "$file" | wc -c)
+            TOTAL_GZIP=$((TOTAL_GZIP + GZIP_SIZE))
+            KB_SIZE=$(awk "BEGIN {printf \"%.2f\", $GZIP_SIZE/1024}")
+            echo "Asset: $(basename "$file") -> ${KB_SIZE} KB gzip (${GZIP_SIZE} bytes)"
+            if [ "$GZIP_SIZE" -gt "$MAX_BYTES" ]; then
+              echo "::error file=$file::JS chunk exceeds RNF-3 budget of 170 KB gzip (${KB_SIZE} KB)"
+              exit 1
+            fi
+          done
+          TOTAL_KB=$(awk "BEGIN {printf \"%.2f\", $TOTAL_GZIP/1024}")
+          echo "Total JS gzipped size: ${TOTAL_KB} KB (${TOTAL_GZIP} bytes)"
+          if [ "$TOTAL_GZIP" -gt "$MAX_BYTES" ]; then
+            echo "::error::Total initial JS bundle (${TOTAL_KB} KB gzip) exceeds RNF-3 budget of 170 KB gzip"
+            exit 1
+          fi

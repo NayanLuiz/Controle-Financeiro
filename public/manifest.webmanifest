@@ -1,0 +1,18 @@
+{
+  "name": "Controle Financeiro Pessoal",
+  "short_name": "Finanças",
+  "description": "Controle privado de receitas, despesas, orçamento mensal e fluxo de caixa.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1D4ED8",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+# Version control and CI
+.git
+.gitignore
+.github
+
+# Dependencies and build artifacts (rebuilt cleanly inside container)
+node_modules
+dist
+coverage
+report
+
+# Local SQLite database files and persistent volume data (RNF-6)
+data
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Environment secrets (never bake secrets into images — RNF-2, RNF-6)
+.env
+.env.*
+!.env.example
+
+# Documentation and test suites (not needed in runtime image)
+docs
+tests
+AGENTS.md
+README.md
+
+# Editor and OS files
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

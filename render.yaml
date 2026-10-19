@@ -1,0 +1,25 @@
+# Render Blueprint for Personal Finance MVP (Docker + Persistent Disk for SQLite WAL)
+services:
+  - type: web
+    name: personal-finance
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: starter
+    numInstances: 1
+    healthCheckPath: /api/health
+    disk:
+      name: finance-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: DATABASE_PATH
+        value: /data/finance.db
+      - key: APP_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true

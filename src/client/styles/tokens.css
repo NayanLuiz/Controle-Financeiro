@@ -949,6 +949,125 @@ h4 {
   color: #ffffff;
 }
 
+/* Payment Status Quick Toggle Buttons */
+.btn-status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  min-height: 32px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.btn-status-toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.btn-status-paid {
+  background: var(--color-income-bg);
+  color: var(--color-income-text);
+  border-color: var(--color-income-border);
+}
+
+.btn-status-paid:hover {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+}
+
+.dark .btn-status-paid:hover {
+  filter: brightness(1.15);
+}
+
+.btn-status-pending {
+  background: var(--color-status-warning-bg);
+  color: var(--color-status-warning-text);
+  border-color: var(--color-status-warning-border);
+}
+
+.btn-status-pending:hover {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+}
+
+.dark .btn-status-pending:hover {
+  filter: brightness(1.15);
+}
+
+.status-toggle-icon {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+/* Recurring Transactions Badges & Section */
+.recurring-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  margin-left: 0.45rem;
+  vertical-align: middle;
+}
+
+.recurring-section-box {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+}
+
+/* Pending KPI Bar in Transactions */
+.pending-kpi-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.pending-kpi-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+}
+
+.pending-kpi-expense {
+  color: var(--color-status-warning-text);
+}
+
+.pending-kpi-income {
+  color: var(--color-primary);
+}
+
+.pending-kpi-label {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.pending-kpi-count {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

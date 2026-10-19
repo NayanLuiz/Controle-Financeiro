@@ -852,4 +852,199 @@ describe('Personal Finance API Integration (CA-1 to CA-25)', () => {
       expect(mariaDash.summary.totalIncomeCents).toBe(650000);
     });
   });
+
+  describe('T-14: Status de Pagamento e Contas Recorrentes (CA-26 a CA-32)', () => {
+    it('CA-26 & CA-27: toggles payment status between PAID and PENDING via PATCH /api/transactions/:id/status', async () => {
+      const categories = await getCategories();
+      const moradia = categories.find((c) => c.name === 'Moradia');
+      expect(moradia).toBeDefined();
+
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/api/transactions',
+        headers: { cookie: authCookie },
+        payload: {
+          type: 'EXPENSE',
+          amountCents: 150000,
+          date: '2026-10-10',
+          description: 'Aluguel Outubro',
+          categoryId: moradia?.id,
+          status: 'PENDING',
+        },
+      });
+      expect(createRes.statusCode).toBe(201);
+      const created = createRes.json() as TransactionDto;
+      expect(created.status).toBe('PENDING');
+
+      const patchToPaid = await app.inject({
+        method: 'PATCH',
+        url: `/api/transactions/${created.id}/status`,
+        headers: { cookie: authCookie },
+        payload: { status: 'PAID' },
+      });
+      expect(patchToPaid.statusCode).toBe(200);
+      expect((patchToPaid.json() as TransactionDto).status).toBe('PAID');
+
+      const patchBackToPending = await app.inject({
+        method: 'PATCH',
+        url: `/api/transactions/${created.id}/status`,
+        headers: { cookie: authCookie },
+        payload: { status: 'PENDING' },
+      });
+      expect(patchBackToPending.statusCode).toBe(200);
+      expect((patchBackToPending.json() as TransactionDto).status).toBe('PENDING');
+    });
+
+    it('CA-28, CA-29 & CA-30: creates 12 subsequent monthly transactions when isRecurring is true', async () => {
+      const categories = await getCategories();
+      const moradia = categories.find((c) => c.name === 'Moradia');
+      expect(moradia).toBeDefined();
+
+      const recRes = await app.inject({
+        method: 'POST',
+        url: '/api/transactions',
+        headers: { cookie: authCookie },
+        payload: {
+          type: 'EXPENSE',
+          amountCents: 200000,
+          date: '2026-10-15',
+          description: 'Condomínio',
+          categoryId: moradia?.id,
+          status: 'PAID',
+          isRecurring: true,
+          recurrenceEndDate: '2027-10-15',
+        },
+      });
+      expect(recRes.statusCode).toBe(201);
+      const initial = recRes.json() as TransactionDto;
+      expect(initial.isRecurring).toBe(true);
+      expect(initial.status).toBe('PAID');
+      expect(initial.recurringGroupId).toBeDefined();
+
+      const nextMonthRes = await app.inject({
+        method: 'GET',
+        url: '/api/transactions?month=11&year=2026',
+        headers: { cookie: authCookie },
+      });
+      const nextMonthData = nextMonthRes.json() as PaginatedTransactionsDto;
+      const novTx = nextMonthData.items.find((t) => t.description === 'Condomínio');
+      expect(novTx).toBeDefined();
+      expect(novTx?.date).toBe('2026-11-15');
+      expect(novTx?.status).toBe('PENDING');
+      expect(novTx?.isRecurring).toBe(true);
+      expect(novTx?.recurringGroupId).toBe(initial.recurringGroupId);
+
+      const oneYearRes = await app.inject({
+        method: 'GET',
+        url: '/api/transactions?month=10&year=2027',
+        headers: { cookie: authCookie },
+      });
+      const oneYearData = oneYearRes.json() as PaginatedTransactionsDto;
+      const oct27Tx = oneYearData.items.find((t) => t.description === 'Condomínio');
+      expect(oct27Tx).toBeDefined();
+      expect(oct27Tx?.date).toBe('2027-10-15');
+      expect(oct27Tx?.status).toBe('PENDING');
+    });
+
+    it('CA-31: filters transactions by status and provides pendingSummary', async () => {
+      const categories = await getCategories();
+      const alimentacao = categories.find((c) => c.name === 'Alimentação');
+      expect(alimentacao).toBeDefined();
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/transactions',
+        headers: { cookie: authCookie },
+        payload: {
+          type: 'EXPENSE',
+          amountCents: 5000,
+          date: '2026-10-01',
+          description: 'Restaurante Pago',
+          categoryId: alimentacao?.id,
+          status: 'PAID',
+        },
+      });
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/transactions',
+        headers: { cookie: authCookie },
+        payload: {
+          type: 'EXPENSE',
+          amountCents: 7500,
+          date: '2026-10-02',
+          description: 'Restaurante Pendente',
+          categoryId: alimentacao?.id,
+          status: 'PENDING',
+        },
+      });
+
+      const pendingOnly = await app.inject({
+        method: 'GET',
+        url: '/api/transactions?month=10&year=2026&status=PENDING',
+        headers: { cookie: authCookie },
+      });
+      expect(pendingOnly.statusCode).toBe(200);
+      const pendingData = pendingOnly.json() as PaginatedTransactionsDto;
+      expect(pendingData.items.every((t) => t.status === 'PENDING')).toBe(true);
+      expect(pendingData.pendingSummary?.pendingExpenseCents).toBeGreaterThanOrEqual(7500);
+      expect(pendingData.pendingSummary?.pendingExpenseCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('CA-32: deletes following occurrences of a recurring group with scope=following', async () => {
+      const categories = await getCategories();
+      const moradia = categories.find((c) => c.name === 'Moradia');
+      expect(moradia).toBeDefined();
+
+      const recRes = await app.inject({
+        method: 'POST',
+        url: '/api/transactions',
+        headers: { cookie: authCookie },
+        payload: {
+          type: 'EXPENSE',
+          amountCents: 12000,
+          date: '2026-10-05',
+          description: 'Internet Fibra',
+          categoryId: moradia?.id,
+          status: 'PAID',
+          isRecurring: true,
+          recurrenceEndDate: '2027-02-05',
+        },
+      });
+      const initial = recRes.json() as TransactionDto;
+
+      const decRes = await app.inject({
+        method: 'GET',
+        url: '/api/transactions?month=12&year=2026',
+        headers: { cookie: authCookie },
+      });
+      const decTx = (decRes.json() as PaginatedTransactionsDto).items.find(
+        (t) => t.recurringGroupId === initial.recurringGroupId,
+      );
+      expect(decTx).toBeDefined();
+
+      const deleteRes = await app.inject({
+        method: 'DELETE',
+        url: `/api/transactions/${decTx?.id}?scope=following`,
+        headers: { cookie: authCookie },
+      });
+      expect(deleteRes.statusCode).toBe(204);
+
+      const checkOctRes = await app.inject({
+        method: 'GET',
+        url: '/api/transactions?month=10&year=2026',
+        headers: { cookie: authCookie },
+      });
+      const octItems = (checkOctRes.json() as PaginatedTransactionsDto).items;
+      expect(octItems.some((t) => t.id === initial.id)).toBe(true);
+
+      const checkJanRes = await app.inject({
+        method: 'GET',
+        url: '/api/transactions?month=1&year=2027',
+        headers: { cookie: authCookie },
+      });
+      const janItems = (checkJanRes.json() as PaginatedTransactionsDto).items;
+      expect(janItems.some((t) => t.recurringGroupId === initial.recurringGroupId)).toBe(false);
+    });
+  });
 });

@@ -11,6 +11,7 @@ import type {
   PeriodQuery,
   RegisterRequest,
   TransactionDto,
+  TransactionStatus,
   UpdateCategoryInput,
   UpsertBudgetInput,
   UpsertTransactionInput,
@@ -186,6 +187,9 @@ export const apiClient = {
     if (params.type) {
       query.set('type', params.type);
     }
+    if (params.status) {
+      query.set('status', params.status);
+    }
     if (params.categoryId) {
       query.set('categoryId', params.categoryId);
     }
@@ -208,6 +212,13 @@ export const apiClient = {
     });
   },
 
+  updateTransactionStatus(id: string, status: TransactionStatus): Promise<TransactionDto> {
+    return requestJson<TransactionDto>(`/api/transactions/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
   updateTransaction(id: string, input: UpsertTransactionInput): Promise<TransactionDto> {
     return requestJson<TransactionDto>(`/api/transactions/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -215,8 +226,9 @@ export const apiClient = {
     });
   },
 
-  deleteTransaction(id: string): Promise<void> {
-    return requestJson<void>(`/api/transactions/${encodeURIComponent(id)}`, {
+  deleteTransaction(id: string, scope: 'single' | 'following' = 'single'): Promise<void> {
+    const query = scope === 'following' ? '?scope=following' : '';
+    return requestJson<void>(`/api/transactions/${encodeURIComponent(id)}${query}`, {
       method: 'DELETE',
     });
   },

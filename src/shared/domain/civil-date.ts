@@ -13,7 +13,7 @@ function isLeapYear(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
-function getDaysInMonth(year: number, month: number): number {
+export function getDaysInMonth(year: number, month: number): number {
   switch (month) {
     case 2:
       return isLeapYear(year) ? 29 : 28;
@@ -81,4 +81,15 @@ export function stepMonthYear(
   const nextMonth = (totalMonths % 12) + 1;
   const clampedYear = Math.max(MIN_YEAR, Math.min(MAX_YEAR, nextYear));
   return { month: nextMonth, year: clampedYear };
+}
+
+export function addYearsCivilDate(dateStr: string, yearsToAdd: number): string {
+  const parts = parseCivilDate(dateStr);
+  if (!parts) {
+    return dateStr;
+  }
+  const nextYear = Math.max(MIN_YEAR, Math.min(MAX_YEAR, parts.year + yearsToAdd));
+  const maxDay = getDaysInMonth(nextYear, parts.month);
+  const nextDay = Math.min(parts.day, maxDay);
+  return `${nextYear}-${String(parts.month).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`;
 }

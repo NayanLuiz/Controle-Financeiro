@@ -3,9 +3,15 @@ import {
   type CategoryDto,
   type EntryType,
   type TransactionDto,
+  type TransactionStatus,
   upsertTransactionSchema,
 } from '../../shared/contracts/index.js';
-import { getTodayCivilDate } from '../../shared/domain/civil-date.js';
+
+import {
+  addYearsCivilDate,
+  formatCivilDatePtBr,
+  getTodayCivilDate,
+} from '../../shared/domain/civil-date.js';
 import { formatCentsToBrl, parseDigitsToCents } from '../../shared/domain/money.js';
 import { ApiRequestError, apiClient } from '../api/client.js';
 
@@ -31,10 +37,13 @@ export function TransactionModal({
   onSaved,
 }: TransactionModalProps) {
   const [type, setType] = useState<EntryType>('EXPENSE');
+  const [status, setStatus] = useState<TransactionStatus>('PAID');
   const [amountCents, setAmountCents] = useState<number>(0);
   const [categoryId, setCategoryId] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [date, setDate] = useState<string>(() => getTodayCivilDate());
+  const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -80,22 +89,36 @@ export function TransactionModal({
 
     if (editingTransaction) {
       setType(editingTransaction.type);
+      setStatus(editingTransaction.status ?? 'PAID');
       setAmountCents(editingTransaction.amountCents);
       setCategoryId(editingTransaction.categoryId);
       setDescription(editingTransaction.description);
       setDate(editingTransaction.date);
+      setIsRecurring(Boolean(editingTransaction.isRecurring));
+      setRecurrenceEndDate('');
     } else {
       const defaultType: EntryType = 'EXPENSE';
       const firstActive = categories.find((c) => c.type === defaultType && !c.isArchived);
+      const today = getTodayCivilDate();
       setType(defaultType);
+      setStatus('PAID');
       setAmountCents(0);
       setCategoryId(firstActive?.id ?? '');
       setDescription('');
-      setDate(getTodayCivilDate());
+      setDate(today);
+      setIsRecurring(false);
+      setRecurrenceEndDate(addYearsCivilDate(today, 1));
     }
 
     amountInputRef.current?.focus();
   }, [isOpen, editingTransaction, categories]);
+
+  const handleDateChange = (newDate: string) => {
+    setDate(newDate);
+    if (isRecurring) {
+      setRecurrenceEndDate(addYearsCivilDate(newDate, 1));
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -134,10 +157,16 @@ export function TransactionModal({
 
     const validation = upsertTransactionSchema.safeParse({
       type,
+      status,
       amountCents,
       date,
       description,
       categoryId,
+      isRecurring: !editingTransaction && isRecurring ? true : undefined,
+      recurrenceEndDate:
+        !editingTransaction && isRecurring
+          ? recurrenceEndDate || addYearsCivilDate(date, 1)
+          : undefined,
     });
 
     if (!validation.success) {
@@ -224,6 +253,30 @@ export function TransactionModal({
                 onClick={() => handleTypeChange('INCOME')}
               >
                 Receita
+              </button>
+            </div>
+          </fieldset>
+
+          <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+            <legend className="field-label" style={{ marginBottom: '0.25rem' }}>
+              Status de pagamento
+            </legend>
+            <div className="segmented-control">
+              <button
+                type="button"
+                className="segmented-btn"
+                aria-pressed={status === 'PAID'}
+                onClick={() => setStatus('PAID')}
+              >
+                <span aria-hidden="true">✓</span> {type === 'INCOME' ? 'Recebido' : 'Pago'}
+              </button>
+              <button
+                type="button"
+                className="segmented-btn"
+                aria-pressed={status === 'PENDING'}
+                onClick={() => setStatus('PENDING')}
+              >
+                <span aria-hidden="true">⏱</span> Pendente
               </button>
             </div>
           </fieldset>
@@ -321,14 +374,14 @@ export function TransactionModal({
               }}
             >
               <label htmlFor="tx-date-input" className="field-label">
-                Data
+                Data do lançamento
               </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
                   style={{ minHeight: '30px', padding: '0.15rem 0.55rem', fontSize: '0.75rem' }}
-                  onClick={() => setDate(getTodayCivilDate())}
+                  onClick={() => handleDateChange(getTodayCivilDate())}
                 >
                   Hoje
                 </button>
@@ -336,7 +389,7 @@ export function TransactionModal({
                   type="button"
                   className="btn btn-secondary"
                   style={{ minHeight: '30px', padding: '0.15rem 0.55rem', fontSize: '0.75rem' }}
-                  onClick={() => setDate(getYesterdayCivilDate())}
+                  onClick={() => handleDateChange(getYesterdayCivilDate())}
                 >
                   Ontem
                 </button>
@@ -347,7 +400,7 @@ export function TransactionModal({
               type="date"
               className="input-control tabular-nums"
               value={date}
-              onChange={(event) => setDate(event.target.value)}
+              onChange={(event) => handleDateChange(event.target.value)}
               aria-invalid={Boolean(fieldErrors.date)}
               aria-describedby={fieldErrors.date ? 'tx-date-error' : undefined}
             />
@@ -357,6 +410,68 @@ export function TransactionModal({
               </span>
             )}
           </div>
+
+          {!editingTransaction && (
+            <div className="recurring-section-box">
+              <label
+                htmlFor="tx-is-recurring"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  color: 'var(--color-text-primary)',
+                  userSelect: 'none',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="tx-is-recurring"
+                  checked={isRecurring}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setIsRecurring(checked);
+                    if (checked && !recurrenceEndDate) {
+                      setRecurrenceEndDate(addYearsCivilDate(date, 1));
+                    }
+                  }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span>🔁 Conta recorrente mensal (repetir todos os meses)</span>
+              </label>
+
+              {isRecurring && (
+                <div style={{ marginTop: '0.85rem', display: 'grid', gap: '0.5rem' }}>
+                  <label htmlFor="tx-recurrence-end-date" className="field-label">
+                    Recorrente até (padrão: 1 ano à frente):
+                  </label>
+                  <input
+                    id="tx-recurrence-end-date"
+                    type="date"
+                    className="input-control tabular-nums"
+                    min={date}
+                    value={recurrenceEndDate}
+                    onChange={(event) => setRecurrenceEndDate(event.target.value)}
+                  />
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '0.8125rem',
+                      color: 'var(--color-text-secondary)',
+                    }}
+                  >
+                    Serão gerados lançamentos automáticos mensais como &quot;Pendente&quot; até{' '}
+                    <strong className="tabular-nums">
+                      {formatCivilDatePtBr(recurrenceEndDate || addYearsCivilDate(date, 1))}
+                    </strong>
+                    .
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div
             style={{

@@ -119,6 +119,9 @@ describe('UI Components & Multimodal Accessibility (T-7 to T-9, RNF-5, CA-23..CA
           categoryName: 'Antiga Despesa',
           categoryColor: '#475569',
           categoryIsArchived: true,
+          status: 'PAID',
+          isRecurring: false,
+          recurringGroupId: null,
           createdAt: '2026-10-15T12:00:00.000Z',
         }}
         onClose={vi.fn()}
@@ -127,5 +130,55 @@ describe('UI Components & Multimodal Accessibility (T-7 to T-9, RNF-5, CA-23..CA
     );
 
     expect(screen.getByText(/Antiga Despesa \(Arquivada\)/)).toBeDefined();
+  });
+
+  it('renders TransactionModal with status toggle buttons and 1-year recurrence default (CA-26, CA-28)', async () => {
+    const { TransactionModal } = await import('../../src/client/components/TransactionModal.js');
+    const categories = [
+      {
+        id: 'cat-1',
+        name: 'Moradia',
+        type: 'EXPENSE' as const,
+        color: '#2563EB',
+        isArchived: false,
+        hasLinkedRecords: false,
+      },
+    ];
+
+    render(
+      <TransactionModal
+        isOpen={true}
+        categories={categories}
+        editingTransaction={null}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />,
+    );
+
+    // Status buttons
+    const paidButton = screen.getByRole('button', { name: /Pago/i });
+    const pendingButton = screen.getByRole('button', { name: /Pendente/i });
+    expect(paidButton).toBeDefined();
+    expect(pendingButton).toBeDefined();
+    expect(paidButton.getAttribute('aria-pressed')).toBe('true');
+
+    // Click to switch to Pendente
+    fireEvent.click(pendingButton);
+    expect(pendingButton.getAttribute('aria-pressed')).toBe('true');
+    expect(paidButton.getAttribute('aria-pressed')).toBe('false');
+
+    // Recurrence checkbox
+    const recurringCheckbox = screen.getByLabelText(/Conta recorrente mensal/i) as HTMLInputElement;
+    expect(recurringCheckbox.checked).toBe(false);
+
+    // Toggle recurrence ON
+    fireEvent.click(recurringCheckbox);
+    expect(recurringCheckbox.checked).toBe(true);
+
+    const endDateInput = screen.getByLabelText(/Recorrente até/i) as HTMLInputElement;
+    expect(endDateInput).toBeDefined();
+    expect(endDateInput.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Verified 1 year default
+    expect(screen.getByText(/Serão gerados lançamentos automáticos mensais/i)).toBeDefined();
   });
 });

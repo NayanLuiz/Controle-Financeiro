@@ -2,10 +2,13 @@ import {
   budgetStatusSchema,
   categoryQuerySchema,
   createCategorySchema,
+  deleteTransactionQuerySchema,
   listTransactionsQuerySchema,
   loginRequestSchema,
   periodQuerySchema,
+  transactionStatusSchema,
   updateCategorySchema,
+  updateTransactionStatusSchema,
   upsertBudgetSchema,
   upsertTransactionSchema,
 } from '../../src/shared/contracts/index.js';
@@ -15,12 +18,15 @@ import {
   compareBudgetSeverity,
 } from '../../src/shared/domain/budget-status.js';
 import {
+  addYearsCivilDate,
   formatCivilDatePtBr,
   getTodayCivilDate,
   isValidCivilDate,
   parseCivilDate,
   stepMonthYear,
 } from '../../src/shared/domain/civil-date.js';
+import { generateMonthlyRecurringDates } from '../../src/shared/domain/recurrence.js';
+
 import {
   formatCentsToBrl,
   isValidAmountCents,
@@ -74,6 +80,31 @@ describe('Domain: Civil dates YYYY-MM-DD (ADR-0002, CA-13, CA-14)', () => {
     expect(getTodayCivilDate(new Date(2026, 9, 19))).toBe('2026-10-19');
     expect(stepMonthYear(1, 2026, -1)).toEqual({ month: 12, year: 2025 });
     expect(stepMonthYear(12, 2026, 1)).toEqual({ month: 1, year: 2027 });
+  });
+
+  it('adds civil years accurately handling leap years (CA-28)', () => {
+    expect(addYearsCivilDate('2026-10-19', 1)).toBe('2027-10-19');
+    expect(addYearsCivilDate('2024-02-29', 1)).toBe('2025-02-28');
+    expect(addYearsCivilDate('2024-02-29', 4)).toBe('2028-02-29');
+  });
+});
+
+describe('Domain: Monthly Recurring Dates Generator (RF-15, CA-28..CA-30)', () => {
+  it('generates 12 subsequent monthly dates for 1 year period (CA-28, CA-29)', () => {
+    const dates = generateMonthlyRecurringDates('2026-10-19', '2027-10-19');
+    expect(dates).toHaveLength(12);
+    expect(dates[0]).toBe('2026-11-19');
+    expect(dates[11]).toBe('2027-10-19');
+  });
+
+  it('clamps day on shorter months such as February and April (CA-30)', () => {
+    const dates = generateMonthlyRecurringDates('2026-01-31', '2026-05-31');
+    expect(dates).toEqual(['2026-02-28', '2026-03-31', '2026-04-30', '2026-05-31']);
+  });
+
+  it('returns empty array when endDate is before or equal to startDate', () => {
+    expect(generateMonthlyRecurringDates('2026-10-19', '2026-10-19')).toEqual([]);
+    expect(generateMonthlyRecurringDates('2026-10-19', '2026-05-19')).toEqual([]);
   });
 });
 
@@ -148,6 +179,11 @@ describe('Contracts: Shared Zod schemas (RF-1..RF-9)', () => {
       color: '#2563EB',
     });
     expect(updateCategorySchema.safeParse({}).success).toBe(false);
+    expect(transactionStatusSchema.safeParse('PAID').success).toBe(true);
+    expect(transactionStatusSchema.safeParse('PENDING').success).toBe(true);
+    expect(transactionStatusSchema.safeParse('OTHER').success).toBe(false);
+    expect(updateTransactionStatusSchema.safeParse({ status: 'PAID' }).success).toBe(true);
+    expect(deleteTransactionQuerySchema.parse({})).toEqual({ scope: 'single' });
     expect(
       upsertTransactionSchema.safeParse({
         type: 'EXPENSE',
@@ -155,15 +191,24 @@ describe('Contracts: Shared Zod schemas (RF-1..RF-9)', () => {
         date: '2026-10-15',
         description: 'Almoço executivo',
         categoryId: 'cat-1',
+        status: 'PENDING',
+        isRecurring: true,
+        recurrenceEndDate: '2027-10-15',
       }).success,
     ).toBe(true);
     expect(
-      listTransactionsQuerySchema.parse({ month: '10', year: '2026', pageSize: '10' }),
+      listTransactionsQuerySchema.parse({
+        month: '10',
+        year: '2026',
+        pageSize: '10',
+        status: 'PENDING',
+      }),
     ).toEqual({
       month: 10,
       year: 2026,
       page: 1,
       pageSize: 10,
+      status: 'PENDING',
     });
     expect(
       upsertBudgetSchema.safeParse({

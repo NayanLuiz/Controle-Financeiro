@@ -57,6 +57,9 @@ CREATE TABLE IF NOT EXISTS transactions (
   month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
   description TEXT NOT NULL CHECK (length(trim(description)) BETWEEN 1 AND 120),
   category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+  status TEXT NOT NULL DEFAULT 'PAID' CHECK (status IN ('PAID', 'PENDING')),
+  is_recurring INTEGER NOT NULL DEFAULT 0 CHECK (is_recurring IN (0, 1)),
+  recurring_group_id TEXT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -87,6 +90,12 @@ CREATE INDEX IF NOT EXISTS idx_transactions_period_sort
 CREATE INDEX IF NOT EXISTS idx_transactions_user_period_sort
   ON transactions (user_id, year, month, date DESC, created_at DESC);
 
+CREATE INDEX IF NOT EXISTS idx_transactions_user_period_status
+  ON transactions (user_id, year, month, status);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_recurring_group
+  ON transactions (recurring_group_id);
+
 CREATE INDEX IF NOT EXISTS idx_transactions_period_type_category
   ON transactions (year, month, type, category_id);
 
@@ -114,6 +123,9 @@ export function runMigrations(db: DatabaseSync): void {
   ensureColumnExists(db, 'categories', 'user_id', "TEXT NOT NULL DEFAULT 'default-user'");
   ensureColumnExists(db, 'transactions', 'user_id', "TEXT NOT NULL DEFAULT 'default-user'");
   ensureColumnExists(db, 'budgets', 'user_id', "TEXT NOT NULL DEFAULT 'default-user'");
+  ensureColumnExists(db, 'transactions', 'status', "TEXT NOT NULL DEFAULT 'PAID'");
+  ensureColumnExists(db, 'transactions', 'is_recurring', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumnExists(db, 'transactions', 'recurring_group_id', 'TEXT NULL');
   db.exec('DROP INDEX IF EXISTS idx_categories_type_name_norm;');
   db.exec(INDEXES_SQL);
 }

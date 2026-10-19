@@ -119,6 +119,9 @@ export interface CategoryDto {
   readonly hasLinkedRecords: boolean;
 }
 
+export const transactionStatusSchema = z.enum(['PAID', 'PENDING']);
+export type TransactionStatus = z.infer<typeof transactionStatusSchema>;
+
 export const upsertTransactionSchema = z.object({
   type: entryTypeSchema,
   amountCents: amountCentsSchema,
@@ -129,13 +132,27 @@ export const upsertTransactionSchema = z.object({
     .min(1, 'Informe uma descrição entre 1 e 120 caracteres.')
     .max(120, 'Informe uma descrição entre 1 e 120 caracteres.'),
   categoryId: z.string().trim().min(1, 'Selecione uma categoria válida.'),
+  status: transactionStatusSchema.default('PAID').optional(),
+  isRecurring: z.boolean().optional(),
+  recurrenceEndDate: civilDateSchema.optional(),
 });
 export type UpsertTransactionInput = z.infer<typeof upsertTransactionSchema>;
+
+export const updateTransactionStatusSchema = z.object({
+  status: transactionStatusSchema,
+});
+export type UpdateTransactionStatusInput = z.infer<typeof updateTransactionStatusSchema>;
+
+export const deleteTransactionQuerySchema = z.object({
+  scope: z.enum(['single', 'following']).default('single'),
+});
+export type DeleteTransactionQuery = z.infer<typeof deleteTransactionQuerySchema>;
 
 export const listTransactionsQuerySchema = z.object({
   month: monthQuerySchema,
   year: yearQuerySchema,
   type: entryTypeSchema.optional(),
+  status: transactionStatusSchema.optional(),
   categoryId: z.string().trim().min(1).optional(),
   search: z.string().trim().max(120).optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -153,7 +170,17 @@ export interface TransactionDto {
   readonly categoryName: string;
   readonly categoryColor: string;
   readonly categoryIsArchived: boolean;
+  readonly status: TransactionStatus;
+  readonly isRecurring: boolean;
+  readonly recurringGroupId: string | null;
   readonly createdAt: string;
+}
+
+export interface PeriodPendingSummaryDto {
+  readonly pendingExpenseCents: number;
+  readonly pendingIncomeCents: number;
+  readonly pendingExpenseCount: number;
+  readonly pendingIncomeCount: number;
 }
 
 export interface PaginationMetaDto {
@@ -166,6 +193,7 @@ export interface PaginationMetaDto {
 export interface PaginatedTransactionsDto {
   readonly items: readonly TransactionDto[];
   readonly meta: PaginationMetaDto;
+  readonly pendingSummary?: PeriodPendingSummaryDto;
 }
 
 export const upsertBudgetSchema = z.object({

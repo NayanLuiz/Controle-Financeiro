@@ -60,7 +60,7 @@ describe('Personal Finance API Integration (CA-1 to CA-25)', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      expect(res.json()).toEqual({ authenticated: true });
+      expect(res.json()).toMatchObject({ authenticated: true });
       const setCookie = String(res.headers['set-cookie'] ?? '');
       expect(setCookie).toContain('pf_session=');
       expect(setCookie).toContain('HttpOnly');
@@ -792,6 +792,64 @@ describe('Personal Finance API Integration (CA-1 to CA-25)', () => {
         await perfApp.close();
         perfDb.close();
       }
+    });
+
+    it('Multi-User Isolation: registers a separate account with its own seeded categories and isolated transactions/dashboard', async () => {
+      const regRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          name: 'Maria',
+          username: 'maria',
+          password: 'maria-password-123',
+        },
+      });
+      expect(regRes.statusCode).toBe(201);
+      const setCookie = regRes.headers['set-cookie'];
+      const rawMariaCookie = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+      const mariaCookie = (rawMariaCookie ?? '').split(';')[0] ?? '';
+
+      const mariaCatsRes = await app.inject({
+        method: 'GET',
+        url: '/api/categories',
+        headers: { cookie: mariaCookie },
+      });
+      const mariaCats = (mariaCatsRes.json() as { items: CategoryDto[] }).items;
+      expect(mariaCats).toHaveLength(9);
+
+      const mariaSalary = mariaCats.find((c) => c.name === 'Salário');
+      expect(mariaSalary).toBeDefined();
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/transactions',
+        headers: { cookie: mariaCookie },
+        payload: {
+          type: 'INCOME',
+          amountCents: 650000,
+          date: '2026-10-10',
+          description: 'Salário Maria',
+          categoryId: mariaSalary?.id ?? '',
+        },
+      });
+
+      const defaultDash = (
+        await app.inject({
+          method: 'GET',
+          url: '/api/dashboard?month=10&year=2026',
+          headers: { cookie: authCookie },
+        })
+      ).json() as DashboardResponseDto;
+      expect(defaultDash.summary.totalIncomeCents).toBe(0);
+
+      const mariaDash = (
+        await app.inject({
+          method: 'GET',
+          url: '/api/dashboard?month=10&year=2026',
+          headers: { cookie: mariaCookie },
+        })
+      ).json() as DashboardResponseDto;
+      expect(mariaDash.summary.totalIncomeCents).toBe(650000);
     });
   });
 });

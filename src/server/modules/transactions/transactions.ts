@@ -9,6 +9,7 @@ import {
   upsertTransactionSchema,
 } from '../../../shared/contracts/index.js';
 import { parseCivilDate } from '../../../shared/domain/civil-date.js';
+import { getRequestUserId } from '../auth/auth.js';
 
 interface TransactionJoinedRow {
   id: string;
@@ -48,16 +49,17 @@ function mapTransactionRow(row: TransactionJoinedRow): TransactionDto {
 
 export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSync): void {
   const findCategoryStmt = db.prepare(
-    'SELECT id, name, type, color, is_archived FROM categories WHERE id = ?',
+    'SELECT id, name, type, color, is_archived FROM categories WHERE id = ? AND user_id = ?',
   );
   const findTxByIdStmt = db.prepare(
-    'SELECT id, category_id, created_at FROM transactions WHERE id = ?',
+    'SELECT id, category_id, created_at FROM transactions WHERE id = ? AND user_id = ?',
   );
 
   app.get('/api/transactions', async (request) => {
+    const userId = getRequestUserId(request);
     const query = listTransactionsQuerySchema.parse(request.query);
-    const conditions: string[] = ['t.year = ?', 't.month = ?'];
-    const params: Array<string | number> = [query.year, query.month];
+    const conditions: string[] = ['t.user_id = ?', 't.year = ?', 't.month = ?'];
+    const params: Array<string | number> = [userId, query.year, query.month];
 
     if (query.type) {
       conditions.push('t.type = ?');
@@ -116,6 +118,7 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
   });
 
   const validateTransactionInput = (
+    userId: string,
     input: { type: EntryType; date: string; categoryId: string },
     allowedArchivedCategoryId?: string,
   ):
@@ -135,7 +138,9 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
       };
     }
 
-    const category = findCategoryStmt.get(input.categoryId) as CategoryLookupRow | undefined;
+    const category = findCategoryStmt.get(input.categoryId, userId) as
+      | CategoryLookupRow
+      | undefined;
     if (!category) {
       return {
         ok: false,
@@ -165,8 +170,9 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
   };
 
   app.post('/api/transactions', async (request, reply) => {
+    const userId = getRequestUserId(request);
     const input = upsertTransactionSchema.parse(request.body ?? {});
-    const validation = validateTransactionInput(input);
+    const validation = validateTransactionInput(userId, input);
     if (!validation.ok) {
       return reply.code(validation.statusCode).send({
         error: {
@@ -182,10 +188,11 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
 
     db.prepare(
       `INSERT INTO transactions (
-        id, type, amount_cents, date, year, month, description, category_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, user_id, type, amount_cents, date, year, month, description, category_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
+      userId,
       input.type,
       input.amountCents,
       input.date,
@@ -214,8 +221,9 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
   });
 
   app.put<{ Params: { id: string } }>('/api/transactions/:id', async (request, reply) => {
+    const userId = getRequestUserId(request);
     const { id } = request.params;
-    const existingTx = findTxByIdStmt.get(id) as
+    const existingTx = findTxByIdStmt.get(id, userId) as
       | { id: string; category_id: string; created_at: string }
       | undefined;
 
@@ -229,7 +237,7 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     }
 
     const input = upsertTransactionSchema.parse(request.body ?? {});
-    const validation = validateTransactionInput(input, existingTx.category_id);
+    const validation = validateTransactionInput(userId, input, existingTx.category_id);
     if (!validation.ok) {
       return reply.code(validation.statusCode).send({
         error: {
@@ -244,7 +252,7 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     db.prepare(
       `UPDATE transactions
        SET type = ?, amount_cents = ?, date = ?, year = ?, month = ?, description = ?, category_id = ?, updated_at = ?
-       WHERE id = ?`,
+       WHERE id = ? AND user_id = ?`,
     ).run(
       input.type,
       input.amountCents,
@@ -255,6 +263,7 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
       input.categoryId,
       now,
       id,
+      userId,
     );
 
     const updated: TransactionDto = {
@@ -274,8 +283,11 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
   });
 
   app.delete<{ Params: { id: string } }>('/api/transactions/:id', async (request, reply) => {
+    const userId = getRequestUserId(request);
     const { id } = request.params;
-    const result = db.prepare('DELETE FROM transactions WHERE id = ?').run(id);
+    const result = db
+      .prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?')
+      .run(id, userId);
     if (result.changes === 0) {
       return reply.code(404).send({
         error: {

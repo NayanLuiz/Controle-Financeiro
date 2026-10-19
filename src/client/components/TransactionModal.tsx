@@ -188,7 +188,8 @@ export function TransactionModal({
           </h2>
           <button
             type="button"
-            className="btn btn-ghost"
+            className="btn btn-secondary"
+            style={{ minHeight: '36px', padding: '0.25rem 0.65rem' }}
             onClick={onClose}
             aria-label="Fechar modal"
           >
@@ -236,7 +237,7 @@ export function TransactionModal({
               id="tx-amount-input"
               type="text"
               inputMode="numeric"
-              className="input-control tabular-nums"
+              className="input-control input-hero-amount tabular-nums"
               placeholder="R$ 0,00"
               value={formattedAmount}
               onChange={(event) => {
@@ -260,7 +261,7 @@ export function TransactionModal({
             <legend className="field-label" style={{ marginBottom: '0.25rem' }}>
               Categoria
             </legend>
-            <div className="chip-list">
+            <div className="chips-grid">
               {availableCategories.map((cat) => (
                 <button
                   key={cat.id}
@@ -325,16 +326,16 @@ export function TransactionModal({
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   type="button"
-                  className="btn btn-ghost"
-                  style={{ minHeight: '32px', padding: '0.15rem 0.5rem' }}
+                  className="btn btn-secondary"
+                  style={{ minHeight: '30px', padding: '0.15rem 0.55rem', fontSize: '0.75rem' }}
                   onClick={() => setDate(getTodayCivilDate())}
                 >
                   Hoje
                 </button>
                 <button
                   type="button"
-                  className="btn btn-ghost"
-                  style={{ minHeight: '32px', padding: '0.15rem 0.5rem' }}
+                  className="btn btn-secondary"
+                  style={{ minHeight: '30px', padding: '0.15rem 0.55rem', fontSize: '0.75rem' }}
                   onClick={() => setDate(getYesterdayCivilDate())}
                 >
                   Ontem

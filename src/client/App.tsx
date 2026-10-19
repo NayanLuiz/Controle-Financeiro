@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CategoryDto, EntryType, TransactionDto } from '../shared/contracts/index.js';
+import type { CategoryDto, EntryType, TransactionDto, UserDto } from '../shared/contracts/index.js';
 import { MAX_YEAR, MIN_YEAR } from '../shared/domain/civil-date.js';
 import { apiClient, setUnauthorizedListener } from './api/client.js';
 import { MonthYearPicker } from './components/MonthYearPicker.js';
@@ -31,10 +31,23 @@ function readInitialPeriodFromUrl(): { month: number; year: number } {
   };
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0]?.[0] ?? ''}${parts[parts.length - 1]?.[0] ?? ''}`.toUpperCase();
+  }
+  return (name.trim().slice(0, 2) || 'FP').toUpperCase();
+}
+
 export function App() {
   const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>(
     'checking',
   );
+  const [currentUser, setCurrentUser] = useState<UserDto>({
+    id: 'default-user',
+    name: 'Conta Principal',
+    username: 'admin',
+  });
   const [activeView, setActiveView] = useState<AppView>('dashboard');
   const [period, setPeriod] = useState<{ month: number; year: number }>(() =>
     readInitialPeriodFromUrl(),
@@ -71,8 +84,11 @@ export function App() {
     let active = true;
     apiClient
       .getSession()
-      .then(() => {
+      .then((res) => {
         if (active) {
+          if (res.user) {
+            setCurrentUser(res.user);
+          }
           setAuthStatus('authenticated');
           void loadCategories();
         }
@@ -130,13 +146,16 @@ export function App() {
 
   const handleLogout = async () => {
     await apiClient.logout();
+    setCategories([]);
     setAuthStatus('unauthenticated');
   };
 
   if (authStatus === 'checking') {
     return (
-      <main style={{ padding: '2rem', textAlign: 'center' }} aria-busy="true">
-        <p>Verificando sessão...</p>
+      <main className="auth-shell" aria-busy="true">
+        <div className="card" style={{ padding: '2rem 2.5rem', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontWeight: 600 }}>Carregando sua conta financeira...</p>
+        </div>
       </main>
     );
   }
@@ -144,7 +163,10 @@ export function App() {
   if (authStatus === 'unauthenticated') {
     return (
       <LoginView
-        onLoginSuccess={() => {
+        onAuthenticated={(user) => {
+          if (user) {
+            setCurrentUser(user);
+          }
           setAuthStatus('authenticated');
           void loadCategories();
           bumpRefresh();
@@ -160,98 +182,205 @@ export function App() {
     categories: 'Categorias',
   };
 
+  const viewSubtitle: Record<AppView, string> = {
+    dashboard: `Olá, ${currentUser.name} — acompanhe seu fluxo de caixa e metas`,
+    transactions: 'Histórico detalhado de receitas e despesas do período',
+    budgets: 'Planejamento de limites mensais de gastos por categoria',
+    categories: 'Organização de categorias de receitas e despesas da sua conta',
+  };
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar" aria-label="Menu principal">
-        <div>
-          <div className="app-brand">Controle Financeiro</div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ width: '100%' }}
-            onClick={handleOpenNewTransaction}
-          >
-            + Nova Transação
-          </button>
-
-          <nav aria-label="Navegação lateral">
-            <ul className="app-nav-list">
-              <li>
-                <button
-                  type="button"
-                  className="app-nav-btn"
-                  aria-current={activeView === 'dashboard' ? 'page' : undefined}
-                  onClick={() => setActiveView('dashboard')}
-                >
-                  Visão Geral
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className="app-nav-btn"
-                  aria-current={activeView === 'transactions' ? 'page' : undefined}
-                  onClick={() => {
-                    setTxFilterCategory('');
-                    setTxFilterType('');
-                    setActiveView('transactions');
-                  }}
-                >
-                  Transações
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className="app-nav-btn"
-                  aria-current={activeView === 'budgets' ? 'page' : undefined}
-                  onClick={() => setActiveView('budgets')}
-                >
-                  Orçamentos
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className="app-nav-btn"
-                  aria-current={activeView === 'categories' ? 'page' : undefined}
-                  onClick={() => setActiveView('categories')}
-                >
-                  Categorias
-                </button>
-              </li>
-            </ul>
-          </nav>
+        <div className="brand-header">
+          <div className="brand-mark" aria-hidden="true">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </div>
+          <div>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 800,
+                fontSize: '1.15rem',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              FinPulse
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              Finanças Pessoais
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gap: '0.5rem' }}>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => setIsDarkTheme((prev) => !prev)}
-          >
-            {isDarkTheme ? 'Modo Claro' : 'Modo Escuro'}
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => void handleLogout()}>
-            Sair
-          </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          style={{ width: '100%', justifyContent: 'flex-start', padding: '0.65rem 0.9rem' }}
+          onClick={handleOpenNewTransaction}
+        >
+          <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>+</span>
+          <span>Nova Transação</span>
+          <kbd className="kbd-shortcut" title="Atalho de teclado: tecla N">
+            N
+          </kbd>
+        </button>
+
+        <nav aria-label="Navegação lateral">
+          <ul className="app-nav-list">
+            <li>
+              <button
+                type="button"
+                className="app-nav-btn"
+                aria-current={activeView === 'dashboard' ? 'page' : undefined}
+                onClick={() => setActiveView('dashboard')}
+              >
+                <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect width="7" height="9" x="3" y="3" rx="1" />
+                  <rect width="7" height="5" x="14" y="3" rx="1" />
+                  <rect width="7" height="9" x="14" y="12" rx="1" />
+                  <rect width="7" height="5" x="3" y="16" rx="1" />
+                </svg>
+                <span>Visão Geral</span>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="app-nav-btn"
+                aria-current={activeView === 'transactions' ? 'page' : undefined}
+                onClick={() => {
+                  setTxFilterCategory('');
+                  setTxFilterType('');
+                  setActiveView('transactions');
+                }}
+              >
+                <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                <span>Transações</span>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="app-nav-btn"
+                aria-current={activeView === 'budgets' ? 'page' : undefined}
+                onClick={() => setActiveView('budgets')}
+              >
+                <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
+                <span>Orçamentos</span>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="app-nav-btn"
+                aria-current={activeView === 'categories' ? 'page' : undefined}
+                onClick={() => setActiveView('categories')}
+              >
+                <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+                  <path d="M7 7h.01" />
+                </svg>
+                <span>Categorias</span>
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="user-profile-card">
+          <div className="user-profile-row">
+            <div className="user-avatar" aria-hidden="true">
+              {getInitials(currentUser.name)}
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {currentUser.name}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--color-text-muted)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                @{currentUser.username}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ minHeight: '36px', padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+              onClick={() => setIsDarkTheme((prev) => !prev)}
+            >
+              {isDarkTheme ? '☀️ Claro' : '🌙 Escuro'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ minHeight: '36px', padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+              onClick={() => void handleLogout()}
+            >
+              Sair
+            </button>
+          </div>
         </div>
       </aside>
 
-      <div className="app-main-area">
-        <header className="app-topbar">
-          <h1 style={{ margin: 0, fontSize: '1.25rem' }}>{viewTitle[activeView]}</h1>
+      <div className="app-main">
+        <header className="app-header">
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>
+              {viewTitle[activeView]}
+            </h1>
+            <p
+              style={{
+                margin: '0.1rem 0 0 0',
+                fontSize: '0.8125rem',
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              {viewSubtitle[activeView]}
+            </p>
+          </div>
 
-          {activeView !== 'categories' && (
-            <MonthYearPicker month={period.month} year={period.year} onChange={setPeriod} />
-          )}
+          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {activeView !== 'categories' && (
+              <MonthYearPicker month={period.month} year={period.year} onChange={setPeriod} />
+            )}
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <button type="button" className="btn btn-primary" onClick={handleOpenNewTransaction}>
               + Nova Transação
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => void handleLogout()}>
-              Sair
             </button>
           </div>
         </header>
@@ -259,7 +388,7 @@ export function App() {
         <main className="app-content">
           {activeView === 'dashboard' && (
             <DashboardView
-              key={`dash-${refreshTrigger}`}
+              key={`dash-${refreshTrigger}-${currentUser.id}`}
               month={period.month}
               year={period.year}
               onOpenNewTransaction={handleOpenNewTransaction}
@@ -274,7 +403,7 @@ export function App() {
 
           {activeView === 'transactions' && (
             <TransactionsView
-              key={`tx-${refreshTrigger}`}
+              key={`tx-${refreshTrigger}-${currentUser.id}`}
               month={period.month}
               year={period.year}
               categories={categories}
@@ -291,7 +420,7 @@ export function App() {
 
           {activeView === 'budgets' && (
             <BudgetsView
-              key={`budgets-${refreshTrigger}`}
+              key={`budgets-${refreshTrigger}-${currentUser.id}`}
               month={period.month}
               year={period.year}
               onDataChanged={bumpRefresh}
@@ -310,46 +439,51 @@ export function App() {
         </main>
       </div>
 
-      <nav className="app-bottom-nav" aria-label="Navegação inferior">
+      <nav className="mobile-bottom-bar" aria-label="Navegação inferior">
         <button
           type="button"
-          className="bottom-nav-item"
+          className="mobile-nav-btn"
           aria-current={activeView === 'dashboard' ? 'page' : undefined}
           onClick={() => setActiveView('dashboard')}
         >
-          Início
+          <span>📊</span>
+          <span>Início</span>
         </button>
         <button
           type="button"
-          className="bottom-nav-item"
+          className="mobile-nav-btn"
           aria-current={activeView === 'transactions' ? 'page' : undefined}
           onClick={() => setActiveView('transactions')}
         >
-          Transações
+          <span>💳</span>
+          <span>Transações</span>
         </button>
         <button
           type="button"
-          className="bottom-nav-fab"
+          className="mobile-fab-btn"
           aria-label="Nova Transação"
           onClick={handleOpenNewTransaction}
         >
-          +
+          <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>+</span>
+          <span>Lançar</span>
         </button>
         <button
           type="button"
-          className="bottom-nav-item"
+          className="mobile-nav-btn"
           aria-current={activeView === 'budgets' ? 'page' : undefined}
           onClick={() => setActiveView('budgets')}
         >
-          Orçamentos
+          <span>🎯</span>
+          <span>Metas</span>
         </button>
         <button
           type="button"
-          className="bottom-nav-item"
+          className="mobile-nav-btn"
           aria-current={activeView === 'categories' ? 'page' : undefined}
           onClick={() => setActiveView('categories')}
         >
-          Categorias
+          <span>🏷️</span>
+          <span>Categorias</span>
         </button>
       </nav>
 

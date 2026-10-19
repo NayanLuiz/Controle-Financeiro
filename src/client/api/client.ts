@@ -9,10 +9,12 @@ import type {
   LoginRequest,
   PaginatedTransactionsDto,
   PeriodQuery,
+  RegisterRequest,
   TransactionDto,
   UpdateCategoryInput,
   UpsertBudgetInput,
   UpsertTransactionInput,
+  UserDto,
 } from '../../shared/contracts/index.js';
 
 interface ErrorEnvelope {
@@ -105,13 +107,28 @@ async function requestJson<T>(
 }
 
 export const apiClient = {
-  getSession(): Promise<{ authenticated: boolean }> {
-    return requestJson<{ authenticated: boolean }>('/api/auth/session', { method: 'GET' }, false);
+  getSession(): Promise<{ authenticated: boolean; user?: UserDto }> {
+    return requestJson<{ authenticated: boolean; user?: UserDto }>(
+      '/api/auth/session',
+      { method: 'GET' },
+      false,
+    );
   },
 
-  login(input: LoginRequest): Promise<{ authenticated: boolean }> {
-    return requestJson<{ authenticated: boolean }>(
+  login(input: LoginRequest): Promise<{ authenticated: boolean; user?: UserDto }> {
+    return requestJson<{ authenticated: boolean; user?: UserDto }>(
       '/api/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      false,
+    );
+  },
+
+  register(input: RegisterRequest): Promise<{ authenticated: boolean; user?: UserDto }> {
+    return requestJson<{ authenticated: boolean; user?: UserDto }>(
+      '/api/auth/register',
       {
         method: 'POST',
         body: JSON.stringify(input),

@@ -32,6 +32,7 @@ export function BudgetProgressBar({
       aria-valuemax={100}
       aria-valuetext={statusDescription}
     >
+      <div className="progress-marker-80" title="Limite de atenção (80%)" aria-hidden="true" />
       <div className={`progress-fill ${fillClass}`} style={{ width: `${clampedFill}%` }} />
     </div>
   );

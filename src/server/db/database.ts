@@ -5,6 +5,8 @@ import { DatabaseSync } from 'node:sqlite';
 import type { EntryType } from '../../shared/contracts/index.js';
 import { normalizeCategoryName } from '../../shared/domain/money.js';
 
+export const DEFAULT_USER_ID = 'default-user';
+
 interface DefaultCategorySeed {
   readonly name: string;
   readonly type: EntryType;
@@ -24,8 +26,18 @@ export const DEFAULT_CATEGORIES: readonly DefaultCategorySeed[] = [
 ];
 
 const INITIAL_SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 2 AND 60),
+  username TEXT NOT NULL,
+  username_normalized TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL DEFAULT 'default-user',
   name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 2 AND 50),
   name_normalized TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('INCOME', 'EXPENSE')),
@@ -35,14 +47,9 @@ CREATE TABLE IF NOT EXISTS categories (
   updated_at TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_type_name_norm
-  ON categories (type, name_normalized);
-
-CREATE INDEX IF NOT EXISTS idx_categories_type_archived
-  ON categories (type, is_archived);
-
 CREATE TABLE IF NOT EXISTS transactions (
   id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL DEFAULT 'default-user',
   type TEXT NOT NULL CHECK (type IN ('INCOME', 'EXPENSE')),
   amount_cents INTEGER NOT NULL CHECK (amount_cents >= 1 AND amount_cents <= 99999999999),
   date TEXT NOT NULL CHECK (length(date) = 10),
@@ -54,17 +61,9 @@ CREATE TABLE IF NOT EXISTS transactions (
   updated_at TEXT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_transactions_period_sort
-  ON transactions (year, month, date DESC, created_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_transactions_period_type_category
-  ON transactions (year, month, type, category_id);
-
-CREATE INDEX IF NOT EXISTS idx_transactions_category_id
-  ON transactions (category_id);
-
 CREATE TABLE IF NOT EXISTS budgets (
   id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL DEFAULT 'default-user',
   category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
   year INTEGER NOT NULL CHECK (year >= 2000 AND year <= 2100),
   month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
@@ -73,18 +72,55 @@ CREATE TABLE IF NOT EXISTS budgets (
   updated_at TEXT NOT NULL,
   UNIQUE (category_id, year, month)
 );
+`;
+
+const INDEXES_SQL = `
+CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_user_type_name_norm
+  ON categories (user_id, type, name_normalized);
+
+CREATE INDEX IF NOT EXISTS idx_categories_type_archived
+  ON categories (user_id, type, is_archived);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_period_sort
+  ON transactions (year, month, date DESC, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_user_period_sort
+  ON transactions (user_id, year, month, date DESC, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_period_type_category
+  ON transactions (year, month, type, category_id);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_category_id
+  ON transactions (category_id);
 
 CREATE INDEX IF NOT EXISTS idx_budgets_period
   ON budgets (year, month, category_id);
 `;
 
-export function runMigrations(db: DatabaseSync): void {
-  db.exec(INITIAL_SCHEMA_SQL);
+function ensureColumnExists(
+  db: DatabaseSync,
+  table: string,
+  column: string,
+  definition: string,
+): void {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (!columns.some((col) => col.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }
 
-export function seedDefaultCategories(db: DatabaseSync): void {
-  const countStmt = db.prepare('SELECT COUNT(*) AS total FROM categories');
-  const row = countStmt.get() as { total: number | bigint } | undefined;
+export function runMigrations(db: DatabaseSync): void {
+  db.exec(INITIAL_SCHEMA_SQL);
+  ensureColumnExists(db, 'categories', 'user_id', "TEXT NOT NULL DEFAULT 'default-user'");
+  ensureColumnExists(db, 'transactions', 'user_id', "TEXT NOT NULL DEFAULT 'default-user'");
+  ensureColumnExists(db, 'budgets', 'user_id', "TEXT NOT NULL DEFAULT 'default-user'");
+  db.exec('DROP INDEX IF EXISTS idx_categories_type_name_norm;');
+  db.exec(INDEXES_SQL);
+}
+
+export function seedDefaultCategories(db: DatabaseSync, userId: string = DEFAULT_USER_ID): void {
+  const countStmt = db.prepare('SELECT COUNT(*) AS total FROM categories WHERE user_id = ?');
+  const row = countStmt.get(userId) as { total: number | bigint } | undefined;
   const total = Number(row?.total ?? 0);
 
   if (total > 0) {
@@ -95,6 +131,7 @@ export function seedDefaultCategories(db: DatabaseSync): void {
   const insertStmt = db.prepare(`
     INSERT INTO categories (
       id,
+      user_id,
       name,
       name_normalized,
       type,
@@ -102,7 +139,7 @@ export function seedDefaultCategories(db: DatabaseSync): void {
       is_archived,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
   `);
 
   db.exec('BEGIN IMMEDIATE');
@@ -110,6 +147,7 @@ export function seedDefaultCategories(db: DatabaseSync): void {
     for (const category of DEFAULT_CATEGORIES) {
       insertStmt.run(
         randomUUID(),
+        userId,
         category.name,
         normalizeCategoryName(category.name),
         category.type,
@@ -137,7 +175,7 @@ export function createDatabase(databasePath: string): DatabaseSync {
   db.exec('PRAGMA busy_timeout = 5000;');
 
   runMigrations(db);
-  seedDefaultCategories(db);
+  seedDefaultCategories(db, DEFAULT_USER_ID);
 
   return db;
 }

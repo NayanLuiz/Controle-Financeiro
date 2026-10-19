@@ -63,14 +63,14 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     });
   });
 
-  registerAuthModule(app, env);
+  registerAuthModule(app, env, db);
   registerCategoriesModule(app, db);
   registerTransactionsModule(app, db);
   registerBudgetsModule(app, db);
   registerDashboardModule(app, db);
 
   const clientDistPath = resolve(process.cwd(), 'dist/client');
-  if (env.NODE_ENV === 'production' && existsSync(clientDistPath)) {
+  if (env.NODE_ENV !== 'test' && existsSync(clientDistPath)) {
     app.register(fastifyStatic, {
       root: clientDistPath,
       prefix: '/',

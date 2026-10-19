@@ -13,6 +13,7 @@ import {
   calculateBudgetMetrics,
   compareBudgetSeverity,
 } from '../../../shared/domain/budget-status.js';
+import { getRequestUserId } from '../auth/auth.js';
 
 interface BudgetAggregatedRow {
   id: string;
@@ -56,6 +57,7 @@ function mapBudgetRowToDto(row: BudgetAggregatedRow): BudgetProgressDto {
 
 export function getBudgetProgressItems(
   db: DatabaseSync,
+  userId: string,
   year: number,
   month: number,
 ): BudgetProgressDto[] {
@@ -75,21 +77,23 @@ export function getBudgetProgressItems(
       INNER JOIN categories c ON c.id = b.category_id
       LEFT JOIN transactions t
         ON t.category_id = b.category_id
+        AND t.user_id = b.user_id
         AND t.year = b.year
         AND t.month = b.month
         AND t.type = 'EXPENSE'
-      WHERE b.year = ? AND b.month = ?
+      WHERE b.user_id = ? AND b.year = ? AND b.month = ?
       GROUP BY b.id, b.category_id, c.name, c.color, c.is_archived, b.month, b.year, b.limit_cents`,
     )
-    .all(year, month) as unknown as BudgetAggregatedRow[];
+    .all(userId, year, month) as unknown as BudgetAggregatedRow[];
 
   return rows.map(mapBudgetRowToDto).sort(compareBudgetSeverity);
 }
 
 export function registerBudgetsModule(app: FastifyInstance, db: DatabaseSync): void {
   app.get('/api/budgets', async (request) => {
+    const userId = getRequestUserId(request);
     const query = periodQuerySchema.parse(request.query);
-    const items = getBudgetProgressItems(db, query.year, query.month);
+    const items = getBudgetProgressItems(db, userId, query.year, query.month);
 
     const unbudgetedRows = db
       .prepare(
@@ -101,19 +105,27 @@ export function registerBudgetsModule(app: FastifyInstance, db: DatabaseSync): v
         FROM categories c
         LEFT JOIN transactions t
           ON t.category_id = c.id
+          AND t.user_id = c.user_id
           AND t.year = ?
           AND t.month = ?
           AND t.type = 'EXPENSE'
-        WHERE c.type = 'EXPENSE'
+        WHERE c.user_id = ?
+          AND c.type = 'EXPENSE'
           AND c.is_archived = 0
           AND NOT EXISTS (
             SELECT 1 FROM budgets b
-            WHERE b.category_id = c.id AND b.year = ? AND b.month = ?
+            WHERE b.category_id = c.id AND b.user_id = c.user_id AND b.year = ? AND b.month = ?
           )
         GROUP BY c.id, c.name, c.color
         ORDER BY spent_cents DESC, c.name COLLATE NOCASE ASC`,
       )
-      .all(query.year, query.month, query.year, query.month) as unknown as UnbudgetedCategoryRow[];
+      .all(
+        query.year,
+        query.month,
+        userId,
+        query.year,
+        query.month,
+      ) as unknown as UnbudgetedCategoryRow[];
 
     const unbudgetedExpenseCategories: UnbudgetedCategoryDto[] = unbudgetedRows.map((row) => ({
       categoryId: row.category_id,
@@ -133,11 +145,14 @@ export function registerBudgetsModule(app: FastifyInstance, db: DatabaseSync): v
   });
 
   app.put('/api/budgets', async (request, reply) => {
+    const userId = getRequestUserId(request);
     const input = upsertBudgetSchema.parse(request.body ?? {});
 
     const category = db
-      .prepare('SELECT id, name, type, color, is_archived FROM categories WHERE id = ?')
-      .get(input.categoryId) as
+      .prepare(
+        'SELECT id, name, type, color, is_archived FROM categories WHERE id = ? AND user_id = ?',
+      )
+      .get(input.categoryId, userId) as
       | { id: string; name: string; type: EntryType; color: string; is_archived: number }
       | undefined;
 
@@ -161,32 +176,41 @@ export function registerBudgetsModule(app: FastifyInstance, db: DatabaseSync): v
     }
 
     const existing = db
-      .prepare('SELECT id FROM budgets WHERE category_id = ? AND year = ? AND month = ?')
-      .get(input.categoryId, input.year, input.month) as { id: string } | undefined;
+      .prepare(
+        'SELECT id FROM budgets WHERE user_id = ? AND category_id = ? AND year = ? AND month = ?',
+      )
+      .get(userId, input.categoryId, input.year, input.month) as { id: string } | undefined;
 
     const now = new Date().toISOString();
     const budgetId = existing ? existing.id : randomUUID();
 
     if (existing) {
-      db.prepare('UPDATE budgets SET limit_cents = ?, updated_at = ? WHERE id = ?').run(
-        input.limitCents,
-        now,
-        budgetId,
-      );
+      db.prepare(
+        'UPDATE budgets SET limit_cents = ?, updated_at = ? WHERE id = ? AND user_id = ?',
+      ).run(input.limitCents, now, budgetId, userId);
     } else {
       db.prepare(
-        `INSERT INTO budgets (id, category_id, year, month, limit_cents, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      ).run(budgetId, input.categoryId, input.year, input.month, input.limitCents, now, now);
+        `INSERT INTO budgets (id, user_id, category_id, year, month, limit_cents, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        budgetId,
+        userId,
+        input.categoryId,
+        input.year,
+        input.month,
+        input.limitCents,
+        now,
+        now,
+      );
     }
 
     const spentRow = db
       .prepare(
         `SELECT COALESCE(SUM(amount_cents), 0) AS spent_cents
          FROM transactions
-         WHERE category_id = ? AND year = ? AND month = ? AND type = 'EXPENSE'`,
+         WHERE user_id = ? AND category_id = ? AND year = ? AND month = ? AND type = 'EXPENSE'`,
       )
-      .get(input.categoryId, input.year, input.month) as
+      .get(userId, input.categoryId, input.year, input.month) as
       | { spent_cents: number | bigint }
       | undefined;
 
@@ -212,8 +236,9 @@ export function registerBudgetsModule(app: FastifyInstance, db: DatabaseSync): v
   });
 
   app.delete<{ Params: { id: string } }>('/api/budgets/:id', async (request, reply) => {
+    const userId = getRequestUserId(request);
     const { id } = request.params;
-    const result = db.prepare('DELETE FROM budgets WHERE id = ?').run(id);
+    const result = db.prepare('DELETE FROM budgets WHERE id = ? AND user_id = ?').run(id, userId);
     if (result.changes === 0) {
       return reply.code(404).send({
         error: {

@@ -1,7 +1,21 @@
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import type { FastifyInstance } from 'fastify';
-import { loginRequestSchema } from '../../../shared/contracts/index.js';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomUUID,
+  scryptSync,
+  timingSafeEqual,
+} from 'node:crypto';
+import type { DatabaseSync } from 'node:sqlite';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import {
+  type UserDto,
+  loginRequestSchema,
+  registerRequestSchema,
+} from '../../../shared/contracts/index.js';
+import { normalizeCategoryName } from '../../../shared/domain/money.js';
 import type { AppEnv } from '../../config/env.js';
+import { DEFAULT_USER_ID, seedDefaultCategories } from '../../db/database.js';
 
 const SESSION_COOKIE_NAME = 'pf_session';
 const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -14,8 +28,24 @@ interface RateLimitEntry {
 }
 
 interface SessionPayload {
+  readonly userId: string;
+  readonly name: string;
+  readonly username: string;
   readonly iatMs: number;
   readonly exp: number;
+}
+
+interface UserRow {
+  id: string;
+  name: string;
+  username: string;
+  password_hash: string;
+}
+
+const requestUserMap = new WeakMap<FastifyRequest, UserDto>();
+
+export function getRequestUserId(request: FastifyRequest): string {
+  return requestUserMap.get(request)?.id ?? DEFAULT_USER_ID;
 }
 
 function comparePasswordsConstantTime(inputPassword: string, expectedPassword: string): boolean {
@@ -24,9 +54,31 @@ function comparePasswordsConstantTime(inputPassword: string, expectedPassword: s
   return timingSafeEqual(inputDigest, expectedDigest);
 }
 
-function signSessionToken(secret: string, nowMs: number = Date.now()): string {
+function hashUserPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const derived = scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${derived}`;
+}
+
+function verifyUserPassword(password: string, storedHash: string): boolean {
+  const [salt, keyHex] = storedHash.split(':');
+  if (!salt || !keyHex) {
+    return false;
+  }
+  const derived = scryptSync(password, salt, 64);
+  const expected = Buffer.from(keyHex, 'hex');
+  if (derived.length !== expected.length) {
+    return false;
+  }
+  return timingSafeEqual(derived, expected);
+}
+
+function signSessionToken(user: UserDto, secret: string, nowMs: number = Date.now()): string {
   const nowSec = Math.floor(nowMs / 1000);
   const payload: SessionPayload = {
+    userId: user.id,
+    name: user.name,
+    username: user.username,
     iatMs: nowMs,
     exp: nowSec + SESSION_TTL_SECONDS,
   };
@@ -40,23 +92,23 @@ function verifySessionToken(
   secret: string,
   revokedBeforeMs: number,
   nowMs: number = Date.now(),
-): boolean {
+): UserDto | null {
   if (!token) {
-    return false;
+    return null;
   }
   const parts = token.split('.');
   if (parts.length !== 2) {
-    return false;
+    return null;
   }
   const [payloadB64, signatureB64] = parts;
   if (!payloadB64 || !signatureB64) {
-    return false;
+    return null;
   }
 
   const expectedSig = createHmac('sha256', secret).update(payloadB64).digest();
   const providedSig = Buffer.from(signatureB64, 'base64url');
   if (expectedSig.length !== providedSig.length || !timingSafeEqual(expectedSig, providedSig)) {
-    return false;
+    return null;
   }
 
   try {
@@ -64,27 +116,90 @@ function verifySessionToken(
       Buffer.from(payloadB64, 'base64url').toString('utf8'),
     ) as Partial<SessionPayload>;
     const nowSec = Math.floor(nowMs / 1000);
-    return (
-      typeof decoded.exp === 'number' &&
-      decoded.exp > nowSec &&
-      typeof decoded.iatMs === 'number' &&
-      decoded.iatMs > revokedBeforeMs
-    );
+    if (
+      typeof decoded.exp !== 'number' ||
+      decoded.exp <= nowSec ||
+      typeof decoded.iatMs !== 'number' ||
+      decoded.iatMs <= revokedBeforeMs
+    ) {
+      return null;
+    }
+    return {
+      id: typeof decoded.userId === 'string' ? decoded.userId : DEFAULT_USER_ID,
+      name: typeof decoded.name === 'string' ? decoded.name : 'Conta Principal',
+      username: typeof decoded.username === 'string' ? decoded.username : 'admin',
+    };
   } catch {
-    return false;
+    return null;
   }
 }
 
-export function registerAuthModule(app: FastifyInstance, env: AppEnv): void {
+export function registerAuthModule(app: FastifyInstance, env: AppEnv, db: DatabaseSync): void {
   const attemptsByIp = new Map<string, RateLimitEntry>();
   const isSecureCookie = env.NODE_ENV === 'production';
   let revokedBeforeMs = 0;
+
+  const findUserByUsernameStmt = db.prepare(
+    'SELECT id, name, username, password_hash FROM users WHERE username_normalized = ?',
+  );
+  const insertUserStmt = db.prepare(
+    'INSERT INTO users (id, name, username, username_normalized, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+  );
 
   app.get('/api/health', async () => {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
     };
+  });
+
+  app.post('/api/auth/register', async (request, reply) => {
+    const input = registerRequestSchema.parse(request.body ?? {});
+    const usernameNorm = normalizeCategoryName(input.username);
+
+    const existing = findUserByUsernameStmt.get(usernameNorm) as UserRow | undefined;
+    if (existing || usernameNorm === 'admin') {
+      return reply.code(409).send({
+        error: {
+          code: 'USERNAME_CONFLICT',
+          message: 'Este usuário já está em uso. Faça login ou escolha outro identificador.',
+        },
+      });
+    }
+
+    const userId = randomUUID();
+    const nowIso = new Date().toISOString();
+    const passwordHash = hashUserPassword(input.password);
+
+    insertUserStmt.run(
+      userId,
+      input.name.trim(),
+      input.username.trim(),
+      usernameNorm,
+      passwordHash,
+      nowIso,
+    );
+
+    seedDefaultCategories(db, userId);
+
+    const user: UserDto = {
+      id: userId,
+      name: input.name.trim(),
+      username: input.username.trim(),
+    };
+
+    const nowMs = Date.now();
+    const tokenIssuedAtMs = Math.max(nowMs, revokedBeforeMs + 1);
+    const token = signSessionToken(user, env.SESSION_SECRET, tokenIssuedAtMs);
+    reply.setCookie(SESSION_COOKIE_NAME, token, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isSecureCookie,
+      maxAge: SESSION_TTL_SECONDS,
+    });
+
+    return reply.code(201).send({ authenticated: true, user });
   });
 
   app.post('/api/auth/login', async (request, reply) => {
@@ -122,8 +237,28 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv): void {
     }
 
     const body = loginRequestSchema.parse(request.body ?? {});
+    const usernameNorm = body.username ? normalizeCategoryName(body.username) : 'admin';
 
-    if (!comparePasswordsConstantTime(body.password, env.APP_PASSWORD)) {
+    let authenticatedUser: UserDto | null = null;
+
+    if (usernameNorm !== 'admin') {
+      const dbUser = findUserByUsernameStmt.get(usernameNorm) as UserRow | undefined;
+      if (dbUser && verifyUserPassword(body.password, dbUser.password_hash)) {
+        authenticatedUser = {
+          id: dbUser.id,
+          name: dbUser.name,
+          username: dbUser.username,
+        };
+      }
+    } else if (comparePasswordsConstantTime(body.password, env.APP_PASSWORD)) {
+      authenticatedUser = {
+        id: DEFAULT_USER_ID,
+        name: 'Conta Principal',
+        username: 'admin',
+      };
+    }
+
+    if (!authenticatedUser) {
       if (!activeEntry) {
         attemptsByIp.set(clientIp, { failures: 1, windowStartMs: nowMs });
       } else {
@@ -139,9 +274,10 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv): void {
     }
 
     attemptsByIp.delete(clientIp);
+    seedDefaultCategories(db, authenticatedUser.id);
 
     const tokenIssuedAtMs = Math.max(nowMs, revokedBeforeMs + 1);
-    const token = signSessionToken(env.SESSION_SECRET, tokenIssuedAtMs);
+    const token = signSessionToken(authenticatedUser, env.SESSION_SECRET, tokenIssuedAtMs);
     reply.setCookie(SESSION_COOKIE_NAME, token, {
       path: '/',
       httpOnly: true,
@@ -150,7 +286,7 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv): void {
       maxAge: SESSION_TTL_SECONDS,
     });
 
-    return reply.code(200).send({ authenticated: true });
+    return reply.code(200).send({ authenticated: true, user: authenticatedUser });
   });
 
   app.post('/api/auth/logout', async (_request, reply) => {
@@ -164,8 +300,13 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv): void {
     return reply.code(200).send({ authenticated: false });
   });
 
-  app.get('/api/auth/session', async () => {
-    return { authenticated: true };
+  app.get('/api/auth/session', async (request) => {
+    const user = requestUserMap.get(request) ?? {
+      id: DEFAULT_USER_ID,
+      name: 'Conta Principal',
+      username: 'admin',
+    };
+    return { authenticated: true, user };
   });
 
   app.addHook('onRequest', async (request, reply) => {
@@ -176,13 +317,15 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv): void {
     if (
       pathname === '/api/health' ||
       pathname === '/api/auth/login' ||
+      pathname === '/api/auth/register' ||
       pathname === '/api/auth/logout'
     ) {
       return;
     }
 
     const token = request.cookies[SESSION_COOKIE_NAME];
-    if (!verifySessionToken(token, env.SESSION_SECRET, revokedBeforeMs)) {
+    const user = verifySessionToken(token, env.SESSION_SECRET, revokedBeforeMs);
+    if (!user) {
       return reply.code(401).send({
         error: {
           code: 'UNAUTHORIZED',
@@ -190,5 +333,6 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv): void {
         },
       });
     }
+    requestUserMap.set(request, user);
   });
 }

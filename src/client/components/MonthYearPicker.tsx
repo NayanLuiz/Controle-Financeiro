@@ -62,61 +62,78 @@ export function MonthYearPicker({ month, year, onChange }: MonthYearPickerProps)
       style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}
       aria-label="Seletor de competência mensal"
     >
-      <button
-        type="button"
-        className="btn btn-secondary"
-        onClick={() => handleStep(-1)}
-        disabled={isAtMinBoundary}
-        aria-label="Mês anterior"
-      >
-        ◀
-      </button>
+      <div className="period-picker-pill">
+        <button
+          type="button"
+          className="period-step-btn"
+          onClick={() => handleStep(-1)}
+          disabled={isAtMinBoundary}
+          aria-label="Mês anterior"
+        >
+          ◀
+        </button>
 
-      <select
-        aria-label="Selecionar mês"
-        className="select-control"
-        style={{ width: 'auto' }}
-        value={month}
-        onChange={handleMonthSelect}
-      >
-        {MONTH_NAMES.map((label, index) => {
-          const monthNum = index + 1;
-          return (
-            <option key={monthNum} value={monthNum}>
-              {label}
+        <select
+          aria-label="Selecionar mês"
+          className="select-control"
+          style={{
+            width: 'auto',
+            minHeight: '34px',
+            border: 'none',
+            background: 'transparent',
+            fontWeight: 700,
+            padding: '0.2rem 0.45rem',
+          }}
+          value={month}
+          onChange={handleMonthSelect}
+        >
+          {MONTH_NAMES.map((label, index) => {
+            const monthNum = index + 1;
+            return (
+              <option key={monthNum} value={monthNum}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
+
+        <select
+          aria-label="Selecionar ano"
+          className="select-control tabular-nums"
+          style={{
+            width: 'auto',
+            minHeight: '34px',
+            border: 'none',
+            background: 'transparent',
+            fontWeight: 700,
+            padding: '0.2rem 0.45rem',
+          }}
+          value={year}
+          onChange={handleYearSelect}
+        >
+          {YEAR_OPTIONS.map((yr) => (
+            <option key={yr} value={yr}>
+              {yr}
             </option>
-          );
-        })}
-      </select>
+          ))}
+        </select>
 
-      <select
-        aria-label="Selecionar ano"
-        className="select-control tabular-nums"
-        style={{ width: 'auto' }}
-        value={year}
-        onChange={handleYearSelect}
-      >
-        {YEAR_OPTIONS.map((yr) => (
-          <option key={yr} value={yr}>
-            {yr}
-          </option>
-        ))}
-      </select>
-
-      <button
-        type="button"
-        className="btn btn-secondary"
-        onClick={() => handleStep(1)}
-        disabled={isAtMaxBoundary}
-        aria-label="Próximo mês"
-      >
-        ▶
-      </button>
+        <button
+          type="button"
+          className="period-step-btn"
+          onClick={() => handleStep(1)}
+          disabled={isAtMaxBoundary}
+          aria-label="Próximo mês"
+        >
+          ▶
+        </button>
+      </div>
 
       {!isCurrentPeriod && (
         <button
           type="button"
-          className="btn btn-ghost"
+          className="btn btn-secondary"
+          style={{ minHeight: '36px', padding: '0.25rem 0.75rem', borderRadius: '9999px' }}
           onClick={() => onChange({ month: currentMonth, year: currentYear })}
         >
           Mês atual

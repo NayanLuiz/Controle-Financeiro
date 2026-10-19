@@ -40,9 +40,34 @@ export const periodQuerySchema = z.object({
 export type PeriodQuery = z.infer<typeof periodQuerySchema>;
 
 export const loginRequestSchema = z.object({
+  username: z.string().trim().min(1).max(60).optional(),
   password: z.string().min(1, 'Informe a senha de acesso.'),
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
+
+export const registerRequestSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Informe seu nome (entre 2 e 60 caracteres).')
+    .max(60, 'Informe seu nome (entre 2 e 60 caracteres).'),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'O usuário deve ter entre 3 e 40 caracteres.')
+    .max(40, 'O usuário deve ter entre 3 e 40 caracteres.'),
+  password: z
+    .string()
+    .min(4, 'A senha deve ter pelo menos 4 caracteres.')
+    .max(120, 'A senha deve ter no máximo 120 caracteres.'),
+});
+export type RegisterRequest = z.infer<typeof registerRequestSchema>;
+
+export interface UserDto {
+  readonly id: string;
+  readonly name: string;
+  readonly username: string;
+}
 
 export const createCategorySchema = z.object({
   name: z

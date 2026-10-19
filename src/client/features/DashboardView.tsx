@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { DashboardResponseDto, EntryType } from '../../shared/contracts/index.js';
-import { compareBudgetSeverity } from '../../shared/domain/budget-status.js';
 import { formatCentsToBrl } from '../../shared/domain/money.js';
 import { apiClient } from '../api/client.js';
 import { BudgetProgressBar } from '../components/BudgetProgressBar.js';
@@ -29,109 +28,211 @@ export function DashboardView({
 }: DashboardViewProps) {
   const [data, setData] = useState<DashboardResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const loadDashboard = useCallback(async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      const response = await apiClient.getDashboard({ month, year });
-      setData(response);
-    } catch {
-      setErrorMessage('Não foi possível carregar os indicadores do período.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [month, year]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
+    let active = true;
+    setIsLoading(true);
+    setError(null);
+
+    apiClient
+      .getDashboard({ month, year })
+      .then((res) => {
+        if (active) {
+          setData(res);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setError('Não foi possível carregar os indicadores do período.');
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [month, year]);
 
   if (isLoading && !data) {
     return (
-      <section aria-busy="true" aria-label="Carregando painel financeiro">
-        <p>Carregando resumo financeiro...</p>
+      <section className="card" aria-busy="true">
+        <p style={{ margin: 0, fontWeight: 600 }}>
+          Carregando indicadores de {formatMonthYearLabel(month, year)}...
+        </p>
       </section>
     );
   }
 
-  if (errorMessage) {
+  if (error || !data) {
     return (
-      <section className="card" role="alert">
-        <p>{errorMessage}</p>
-        <button type="button" className="btn btn-secondary" onClick={() => void loadDashboard()}>
-          Tentar novamente
-        </button>
+      <section className="alert-banner" role="alert">
+        <p style={{ margin: 0 }}>{error ?? 'Erro ao carregar dados.'}</p>
       </section>
     );
   }
 
-  const summary = data?.summary ?? {
-    totalIncomeCents: 0,
-    totalExpenseCents: 0,
-    netBalanceCents: 0,
-    totalBudgetedCents: 0,
-    totalBudgetSpentCents: 0,
-  };
+  const { summary, cashFlow, categoryBreakdown, budgetProgress } = data;
+  const maxCashFlow = Math.max(cashFlow.totalIncomeCents, cashFlow.totalExpenseCents, 1);
+  const incomeBarPct =
+    cashFlow.totalIncomeCents > 0 ? Math.round((cashFlow.totalIncomeCents / maxCashFlow) * 100) : 0;
+  const expenseBarPct =
+    cashFlow.totalExpenseCents > 0
+      ? Math.round((cashFlow.totalExpenseCents / maxCashFlow) * 100)
+      : 0;
 
-  const categoryBreakdown = data?.categoryBreakdown ?? [];
-  const sortedBudgets = [...(data?.budgetProgress ?? [])].sort(compareBudgetSeverity);
-  const maxCashFlowCents = Math.max(1, summary.totalIncomeCents, summary.totalExpenseCents);
-  const incomeBarWidth = Math.round((summary.totalIncomeCents / maxCashFlowCents) * 100);
-  const expenseBarWidth = Math.round((summary.totalExpenseCents / maxCashFlowCents) * 100);
+  const savingsRatePct =
+    summary.totalIncomeCents > 0
+      ? Math.round(
+          ((summary.totalIncomeCents - summary.totalExpenseCents) / summary.totalIncomeCents) *
+            1000,
+        ) / 10
+      : null;
+
+  const budgetOverallPct =
+    summary.totalBudgetedCents > 0
+      ? Math.round((summary.totalBudgetSpentCents / summary.totalBudgetedCents) * 10000) / 100
+      : 0;
+
   const periodLabel = formatMonthYearLabel(month, year);
+  const hasAnyTransactions = summary.totalIncomeCents > 0 || summary.totalExpenseCents > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <section aria-label="Indicadores de resumo do mês" className="summary-grid">
-        <article className="card">
-          <h2 className="kpi-title">Total de Receitas</h2>
-          <p className="kpi-value tabular-nums text-income">
+      <section aria-label={`Resumo financeiro de ${periodLabel}`} className="summary-grid">
+        <article className="card kpi-card">
+          <div className="kpi-header">
+            <h2 className="kpi-title">Receitas do Mês</h2>
+            <span className="kpi-icon-badge kpi-icon-income" aria-hidden="true">
+              <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 17 17 7" />
+                <path d="M7 7h10v10" />
+              </svg>
+            </span>
+          </div>
+          <p className="kpi-value tabular-nums" style={{ color: 'var(--color-income-text)' }}>
             {formatCentsToBrl(summary.totalIncomeCents)}
           </p>
+          <p className="kpi-subtext">Total de entradas confirmadas</p>
         </article>
 
-        <article className="card">
-          <h2 className="kpi-title">Total de Despesas</h2>
-          <p className="kpi-value tabular-nums text-expense">
+        <article className="card kpi-card">
+          <div className="kpi-header">
+            <h2 className="kpi-title">Despesas do Mês</h2>
+            <span className="kpi-icon-badge kpi-icon-expense" aria-hidden="true">
+              <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m7 7 10 10" />
+                <path d="M17 7v10H7" />
+              </svg>
+            </span>
+          </div>
+          <p className="kpi-value tabular-nums" style={{ color: 'var(--color-expense-text)' }}>
             {formatCentsToBrl(summary.totalExpenseCents)}
           </p>
+          <p className="kpi-subtext">Total de saídas no período</p>
         </article>
 
-        <article className="card">
-          <h2 className="kpi-title">Saldo Líquido</h2>
+        <article className="card kpi-card">
+          <div className="kpi-header">
+            <h2 className="kpi-title">Saldo Líquido</h2>
+            <span className="kpi-icon-badge kpi-icon-balance" aria-hidden="true">
+              <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+                <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+              </svg>
+            </span>
+          </div>
           <p
-            className={`kpi-value tabular-nums ${
-              summary.netBalanceCents >= 0 ? 'text-income' : 'text-expense'
-            }`}
+            className="kpi-value tabular-nums"
+            style={{
+              color:
+                summary.netBalanceCents >= 0
+                  ? 'var(--color-income-text)'
+                  : 'var(--color-expense-text)',
+            }}
           >
             {formatCentsToBrl(summary.netBalanceCents)}
           </p>
+          <p className="kpi-subtext">
+            {summary.netBalanceCents >= 0
+              ? 'Superávit acumulado no mês'
+              : 'Déficit acumulado no mês'}
+          </p>
         </article>
 
-        <article className="card">
-          <h2 className="kpi-title">Orçado vs. Realizado</h2>
-          <p className="kpi-value tabular-nums" style={{ fontSize: '1.25rem' }}>
-            {formatCentsToBrl(summary.totalBudgetSpentCents)} /{' '}
-            {formatCentsToBrl(summary.totalBudgetedCents)}
+        <article className="card kpi-card">
+          <div className="kpi-header">
+            <h2 className="kpi-title">Orçamento Comprometido</h2>
+            <span className="kpi-icon-badge kpi-icon-budget" aria-hidden="true">
+              <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="6" />
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+            </span>
+          </div>
+          <p className="kpi-value tabular-nums">
+            {summary.totalBudgetedCents > 0 ? formatPercentagePtBr(budgetOverallPct) : '—'}
           </p>
-          <p className="field-hint" style={{ margin: '0.25rem 0 0 0' }}>
-            Considera apenas despesas em categorias com meta definida neste mês.
+          <p className="kpi-subtext tabular-nums">
+            {summary.totalBudgetedCents > 0
+              ? `${formatCentsToBrl(summary.totalBudgetSpentCents)} de ${formatCentsToBrl(summary.totalBudgetedCents)}`
+              : 'Nenhuma meta ativa neste mês'}
           </p>
         </article>
       </section>
 
       <div className="dashboard-split">
         <section className="card" aria-labelledby="cashflow-heading">
-          <h2 id="cashflow-heading" style={{ marginTop: 0, fontSize: '1.125rem' }}>
-            Fluxo de Caixa e Distribuição ({periodLabel})
-          </h2>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              marginBottom: '1.15rem',
+            }}
+          >
+            <h2 id="cashflow-heading" style={{ margin: 0, fontSize: '1.125rem' }}>
+              Fluxo de Caixa e Categorias
+            </h2>
+            {savingsRatePct !== null && (
+              <span
+                className="savings-rate-pill tabular-nums"
+                style={{
+                  background:
+                    savingsRatePct >= 0 ? 'var(--color-income-bg)' : 'var(--color-expense-bg)',
+                  color:
+                    savingsRatePct >= 0 ? 'var(--color-income-text)' : 'var(--color-expense-text)',
+                  border: `1px solid ${savingsRatePct >= 0 ? 'var(--color-income-border)' : 'var(--color-expense-border)'}`,
+                }}
+              >
+                {savingsRatePct >= 0
+                  ? `Taxa de poupança: +${formatPercentagePtBr(savingsRatePct)}`
+                  : `Déficit sobre renda: ${formatPercentagePtBr(savingsRatePct)}`}
+              </span>
+            )}
+          </div>
 
-          {summary.totalIncomeCents === 0 && summary.totalExpenseCents === 0 ? (
-            <div style={{ padding: '1rem 0' }}>
-              <p style={{ color: 'var(--color-text-secondary)' }}>
-                Nenhuma movimentação registrada em {periodLabel}.
+          {!hasAnyTransactions ? (
+            <div className="empty-state-box">
+              <p style={{ margin: 0, fontWeight: 700 }}>
+                Nenhuma movimentação registrada em {periodLabel}
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '0.875rem',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                Registre sua primeira receita ou despesa para visualizar os gráficos de fluxo de
+                caixa e participação por categoria.
               </p>
               <button type="button" className="btn btn-primary" onClick={onOpenNewTransaction}>
                 + Registrar primeira transação
@@ -139,53 +240,65 @@ export function DashboardView({
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div aria-label="Comparativo gráfico de entradas e saídas">
-                <div style={{ marginBottom: '0.75rem' }}>
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <div>
                   <div
+                    className="tabular-nums"
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       fontSize: '0.875rem',
+                      marginBottom: '0.3rem',
                     }}
                   >
-                    <span>Entradas (Receitas)</span>
-                    <strong className="tabular-nums text-income">
-                      {formatCentsToBrl(summary.totalIncomeCents)}
+                    <span style={{ fontWeight: 600 }}>Entradas (Receitas)</span>
+                    <strong style={{ color: 'var(--color-income-text)' }}>
+                      {formatCentsToBrl(cashFlow.totalIncomeCents)}
                     </strong>
                   </div>
-                  <div className="progress-track">
+                  <div className="progress-track" style={{ margin: 0 }}>
                     <div
                       className="progress-fill progress-fill-normal"
-                      style={{ width: `${incomeBarWidth}%` }}
+                      style={{ width: `${incomeBarPct}%` }}
                     />
                   </div>
                 </div>
 
                 <div>
                   <div
+                    className="tabular-nums"
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       fontSize: '0.875rem',
+                      marginBottom: '0.3rem',
                     }}
                   >
-                    <span>Saídas (Despesas)</span>
-                    <strong className="tabular-nums text-expense">
-                      {formatCentsToBrl(summary.totalExpenseCents)}
+                    <span style={{ fontWeight: 600 }}>Saídas (Despesas)</span>
+                    <strong style={{ color: 'var(--color-expense-text)' }}>
+                      {formatCentsToBrl(cashFlow.totalExpenseCents)}
                     </strong>
                   </div>
-                  <div className="progress-track">
+                  <div className="progress-track" style={{ margin: 0 }}>
                     <div
                       className="progress-fill progress-fill-exceeded"
-                      style={{ width: `${expenseBarWidth}%` }}
+                      style={{ width: `${expenseBarPct}%` }}
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.75rem' }}>
-                  Participação por Categoria
+                <h3
+                  style={{
+                    fontSize: '0.8125rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    margin: '0 0 0.65rem 0',
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  Participação por Categoria (clique para filtrar)
                 </h3>
                 <ul
                   style={{
@@ -193,31 +306,53 @@ export function DashboardView({
                     padding: 0,
                     margin: 0,
                     display: 'grid',
-                    gap: '0.75rem',
+                    gap: '0.5rem',
                   }}
                 >
                   {categoryBreakdown.map((item) => (
                     <li key={`${item.type}-${item.categoryId}`}>
                       <button
                         type="button"
-                        className="btn btn-ghost"
+                        onClick={() => onFilterByCategory(item.categoryId, item.type)}
                         style={{
                           width: '100%',
+                          display: 'flex',
                           justifyContent: 'space-between',
-                          padding: '0.5rem',
+                          alignItems: 'center',
+                          padding: '0.6rem 0.75rem',
                           border: '1px solid var(--color-border-subtle)',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--color-surface)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
                         }}
-                        onClick={() => onFilterByCategory(item.categoryId, item.type)}
-                        aria-label={`Filtrar transações de ${item.categoryName} (${formatPercentagePtBr(item.sharePercentage)})`}
                       >
                         <CategoryBadge
                           name={item.categoryName}
                           color={item.categoryColor}
                           isArchived={item.isArchived}
                         />
-                        <span className="tabular-nums" style={{ fontWeight: 600 }}>
-                          {formatCentsToBrl(item.totalAmountCents)} (
-                          {formatPercentagePtBr(item.sharePercentage)})
+                        <span
+                          className="tabular-nums"
+                          style={{
+                            fontSize: '0.875rem',
+                            fontWeight: 700,
+                            color:
+                              item.type === 'INCOME'
+                                ? 'var(--color-income-text)'
+                                : 'var(--color-text-primary)',
+                          }}
+                        >
+                          {formatCentsToBrl(item.totalAmountCents)}{' '}
+                          <span
+                            style={{
+                              color: 'var(--color-text-muted)',
+                              fontWeight: 600,
+                              marginLeft: '0.25rem',
+                            }}
+                          >
+                            ({formatPercentagePtBr(item.sharePercentage)})
+                          </span>
                         </span>
                       </button>
                     </li>
@@ -234,24 +369,39 @@ export function DashboardView({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '1rem',
+              marginBottom: '1.15rem',
             }}
           >
             <h2 id="budgets-progress-heading" style={{ margin: 0, fontSize: '1.125rem' }}>
-              Metas de Orçamento do Mês
+              Acompanhamento de Metas Mensais
             </h2>
-            <button type="button" className="btn btn-secondary" onClick={onNavigateToBudgets}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ minHeight: '36px', padding: '0.25rem 0.75rem', fontSize: '0.8125rem' }}
+              onClick={onNavigateToBudgets}
+            >
               Gerenciar metas
             </button>
           </div>
 
-          {sortedBudgets.length === 0 ? (
-            <div style={{ padding: '1rem 0' }}>
-              <p style={{ color: 'var(--color-text-secondary)' }}>
-                Você ainda não definiu metas de gastos para {periodLabel}.
+          {budgetProgress.length === 0 ? (
+            <div className="empty-state-box">
+              <p style={{ margin: 0, fontWeight: 700 }}>
+                Nenhum orçamento configurado para {periodLabel}
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '0.875rem',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                Defina tetos mensais para suas categorias de despesa e receba alertas visuais ao
+                atingir 80% do limite.
               </p>
               <button type="button" className="btn btn-primary" onClick={onNavigateToBudgets}>
-                Definir metas do mês
+                Definir metas de gastos
               </button>
             </div>
           ) : (
@@ -260,11 +410,12 @@ export function DashboardView({
                 listStyle: 'none',
                 padding: 0,
                 margin: 0,
-                display: 'grid',
-                gap: '1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.875rem',
               }}
             >
-              {sortedBudgets.map((budget) => {
+              {budgetProgress.map((budget) => {
                 const statusDescription = formatBudgetStatusText({
                   status: budget.status,
                   remainingCents: budget.remainingCents,
@@ -275,9 +426,10 @@ export function DashboardView({
                   <li
                     key={budget.id}
                     style={{
-                      padding: '0.875rem',
+                      padding: '0.95rem 1rem',
                       border: '1px solid var(--color-border-subtle)',
                       borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-surface)',
                     }}
                   >
                     <div
@@ -285,8 +437,8 @@ export function DashboardView({
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        gap: '0.5rem',
                         flexWrap: 'wrap',
+                        gap: '0.5rem',
                       }}
                     >
                       <CategoryBadge
@@ -316,10 +468,10 @@ export function DashboardView({
                       }}
                     >
                       <span>
-                        Gasto: <strong>{formatCentsToBrl(budget.spentCents)}</strong> de{' '}
+                        Realizado: <strong>{formatCentsToBrl(budget.spentCents)}</strong> / Meta:{' '}
                         <strong>{formatCentsToBrl(budget.limitCents)}</strong>
                       </span>
-                      <span>{statusDescription}</span>
+                      <span style={{ fontWeight: 600 }}>{statusDescription}</span>
                     </div>
                   </li>
                 );

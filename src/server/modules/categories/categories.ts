@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance } from 'fastify';
 import {
   type CategoryDto,
@@ -9,6 +8,7 @@ import {
   updateCategorySchema,
 } from '../../../shared/contracts/index.js';
 import { normalizeCategoryName } from '../../../shared/domain/money.js';
+import type { DbAdapter } from '../../db/database.js';
 import { getRequestUserId } from '../auth/auth.js';
 
 interface CategoryRow {
@@ -47,12 +47,7 @@ function mapCategoryRow(row: CategoryRow): CategoryDto {
   };
 }
 
-export function registerCategoriesModule(app: FastifyInstance, db: DatabaseSync): void {
-  const findByIdStmt = db.prepare(`${SELECT_CATEGORIES_BASE_SQL} WHERE c.id = ? AND c.user_id = ?`);
-  const findDuplicateStmt = db.prepare(
-    'SELECT id FROM categories WHERE user_id = ? AND type = ? AND name_normalized = ? AND id != ?',
-  );
-
+export function registerCategoriesModule(app: FastifyInstance, db: DbAdapter): void {
   app.get('/api/categories', async (request) => {
     const userId = getRequestUserId(request);
     const query = categoryQuerySchema.parse(request.query);
@@ -69,7 +64,7 @@ export function registerCategoriesModule(app: FastifyInstance, db: DatabaseSync)
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
     const sql = `${SELECT_CATEGORIES_BASE_SQL} ${whereClause} ORDER BY c.is_archived ASC, c.name COLLATE NOCASE ASC`;
-    const rows = db.prepare(sql).all(...params) as unknown as CategoryRow[];
+    const rows = await db.query<CategoryRow>(sql, params);
 
     return {
       items: rows.map(mapCategoryRow),
@@ -81,9 +76,10 @@ export function registerCategoriesModule(app: FastifyInstance, db: DatabaseSync)
     const input = createCategorySchema.parse(request.body ?? {});
     const nameNormalized = normalizeCategoryName(input.name);
 
-    const existing = findDuplicateStmt.get(userId, input.type, nameNormalized, '') as
-      | { id: string }
-      | undefined;
+    const existing = await db.queryOne<{ id: string }>(
+      'SELECT id FROM categories WHERE user_id = ? AND type = ? AND name_normalized = ? AND id != ?',
+      [userId, input.type, nameNormalized, ''],
+    );
     if (existing) {
       return reply.code(409).send({
         error: {
@@ -95,10 +91,11 @@ export function registerCategoriesModule(app: FastifyInstance, db: DatabaseSync)
 
     const id = randomUUID();
     const now = new Date().toISOString();
-    db.prepare(
+    await db.run(
       `INSERT INTO categories (id, user_id, name, name_normalized, type, color, is_archived, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-    ).run(id, userId, input.name, nameNormalized, input.type, input.color, now, now);
+      [id, userId, input.name, nameNormalized, input.type, input.color, now, now],
+    );
 
     const created: CategoryDto = {
       id,
@@ -117,7 +114,10 @@ export function registerCategoriesModule(app: FastifyInstance, db: DatabaseSync)
     const { id } = request.params;
     const input = updateCategorySchema.parse(request.body ?? {});
 
-    const current = findByIdStmt.get(id, userId) as CategoryRow | undefined;
+    const current = await db.queryOne<CategoryRow>(
+      `${SELECT_CATEGORIES_BASE_SQL} WHERE c.id = ? AND c.user_id = ?`,
+      [id, userId],
+    );
     if (!current) {
       return reply.code(404).send({
         error: {
@@ -144,9 +144,10 @@ export function registerCategoriesModule(app: FastifyInstance, db: DatabaseSync)
     }
 
     const nextNameNormalized = normalizeCategoryName(nextName);
-    const duplicate = findDuplicateStmt.get(userId, nextType, nextNameNormalized, id) as
-      | { id: string }
-      | undefined;
+    const duplicate = await db.queryOne<{ id: string }>(
+      'SELECT id FROM categories WHERE user_id = ? AND type = ? AND name_normalized = ? AND id != ?',
+      [userId, nextType, nextNameNormalized, id],
+    );
     if (duplicate) {
       return reply.code(409).send({
         error: {
@@ -157,20 +158,27 @@ export function registerCategoriesModule(app: FastifyInstance, db: DatabaseSync)
     }
 
     const now = new Date().toISOString();
-    db.prepare(
+    await db.run(
       `UPDATE categories
        SET name = ?, name_normalized = ?, type = ?, color = ?, is_archived = ?, updated_at = ?
        WHERE id = ? AND user_id = ?`,
-    ).run(nextName, nextNameNormalized, nextType, nextColor, nextIsArchived, now, id, userId);
+      [nextName, nextNameNormalized, nextType, nextColor, nextIsArchived, now, id, userId],
+    );
 
-    const updated = findByIdStmt.get(id, userId) as CategoryRow;
-    return reply.code(200).send(mapCategoryRow(updated));
+    const updated = await db.queryOne<CategoryRow>(
+      `${SELECT_CATEGORIES_BASE_SQL} WHERE c.id = ? AND c.user_id = ?`,
+      [id, userId],
+    );
+    return reply.code(200).send(mapCategoryRow(updated as CategoryRow));
   });
 
   app.delete<{ Params: { id: string } }>('/api/categories/:id', async (request, reply) => {
     const userId = getRequestUserId(request);
     const { id } = request.params;
-    const current = findByIdStmt.get(id, userId) as CategoryRow | undefined;
+    const current = await db.queryOne<CategoryRow>(
+      `${SELECT_CATEGORIES_BASE_SQL} WHERE c.id = ? AND c.user_id = ?`,
+      [id, userId],
+    );
     if (!current) {
       return reply.code(404).send({
         error: {
@@ -190,7 +198,7 @@ export function registerCategoriesModule(app: FastifyInstance, db: DatabaseSync)
       });
     }
 
-    db.prepare('DELETE FROM categories WHERE id = ? AND user_id = ?').run(id, userId);
+    await db.run('DELETE FROM categories WHERE id = ? AND user_id = ?', [id, userId]);
     return reply.code(204).send();
   });
 }

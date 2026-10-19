@@ -3,9 +3,13 @@ import type { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_CATEGORIES,
+  NeonDbAdapter,
+  SqliteDbAdapter,
   createDatabase,
+  createDatabaseAdapter,
   runMigrations,
   seedDefaultCategories,
+  translateSqlToPostgres,
 } from '../../src/server/db/database.js';
 
 describe('SQLite persistence layer, migrations, indexes and idempotent seed (T-2)', () => {
@@ -100,5 +104,53 @@ describe('SQLite persistence layer, migrations, indexes and idempotent seed (T-2
     const aggregationDetails = aggregationPlan.map((step) => step.detail).join(' | ');
     expect(aggregationDetails).toContain('idx_transactions_period_type_category');
     expect(aggregationDetails).not.toContain('SCAN transactions');
+  });
+});
+
+describe('Database Adapter and Postgres Translation (Neon / Vercel)', () => {
+  it('translates ? parameters into $1, $2, etc., and strips COLLATE NOCASE for Postgres', () => {
+    const sql =
+      "SELECT * FROM categories WHERE user_id = ? AND type = ? AND name != 'What?' ORDER BY name COLLATE NOCASE ASC";
+    const translated = translateSqlToPostgres(sql);
+
+    expect(translated).toBe(
+      "SELECT * FROM categories WHERE user_id = $1 AND type = $2 AND name != 'What?' ORDER BY name  ASC",
+    );
+  });
+
+  it('creates NeonDbAdapter when databaseUrl starts with postgres:// or postgresql://', () => {
+    const adapter = createDatabaseAdapter({
+      databaseUrl: 'postgresql://user:password@ep-cool-project.us-east-2.aws.neon.tech/neondb',
+    });
+
+    expect(adapter).toBeInstanceOf(NeonDbAdapter);
+    expect(adapter.isPostgres).toBe(true);
+  });
+
+  it('creates SqliteDbAdapter when databaseUrl is absent', async () => {
+    const adapter = createDatabaseAdapter({
+      databasePath: ':memory:',
+    });
+
+    expect(adapter).toBeInstanceOf(SqliteDbAdapter);
+    expect(adapter.isPostgres).toBe(false);
+
+    const categories = await adapter.query<{ id: string; name: string }>(
+      'SELECT id, name FROM categories WHERE is_archived = 0',
+    );
+    expect(categories.length).toBe(9);
+
+    const single = await adapter.queryOne<{ total: number }>(
+      'SELECT COUNT(*) as total FROM categories',
+    );
+    expect(single?.total).toBe(9);
+
+    const runResult = await adapter.run('UPDATE categories SET updated_at = ? WHERE id = ?', [
+      new Date().toISOString(),
+      categories[0]?.id,
+    ]);
+    expect(runResult.changes).toBe(1);
+
+    await adapter.close();
   });
 });

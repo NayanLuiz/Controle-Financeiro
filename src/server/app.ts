@@ -6,7 +6,12 @@ import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 import { type AppEnv, loadEnv } from './config/env.js';
-import { createDatabase } from './db/database.js';
+import {
+  type DbAdapter,
+  SqliteDbAdapter,
+  createDatabaseAdapter,
+  initDatabase,
+} from './db/database.js';
 import { registerAuthModule } from './modules/auth/auth.js';
 import { registerBudgetsModule } from './modules/budgets/budgets.js';
 import { registerCategoriesModule } from './modules/categories/categories.js';
@@ -15,7 +20,7 @@ import { registerTransactionsModule } from './modules/transactions/transactions.
 
 export interface BuildAppOptions {
   readonly env?: Partial<AppEnv>;
-  readonly db?: DatabaseSync;
+  readonly db?: DbAdapter | DatabaseSync;
 }
 
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
@@ -25,8 +30,22 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     ...options.env,
   };
 
-  const db = options.db ?? createDatabase(env.DATABASE_PATH);
-  const ownsDatabase = options.db === undefined;
+  let db: DbAdapter;
+  let ownsDatabase = false;
+
+  if (options.db) {
+    if ('query' in options.db) {
+      db = options.db;
+    } else {
+      db = new SqliteDbAdapter(options.db);
+    }
+  } else {
+    db = createDatabaseAdapter({
+      databasePath: env.DATABASE_PATH,
+      databaseUrl: env.DATABASE_URL,
+    });
+    ownsDatabase = true;
+  }
 
   const app = Fastify({
     logger: env.NODE_ENV === 'production',
@@ -63,6 +82,10 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     });
   });
 
+  app.addHook('onReady', async () => {
+    await initDatabase(db);
+  });
+
   registerAuthModule(app, env, db);
   registerCategoriesModule(app, db);
   registerTransactionsModule(app, db);
@@ -94,7 +117,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   app.addHook('onClose', async () => {
     if (ownsDatabase && !isDbClosed) {
       isDbClosed = true;
-      db.close();
+      await db.close();
     }
   });
 

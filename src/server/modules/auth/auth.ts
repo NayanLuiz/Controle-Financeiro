@@ -6,7 +6,6 @@ import {
   scryptSync,
   timingSafeEqual,
 } from 'node:crypto';
-import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import {
   type UserDto,
@@ -15,7 +14,11 @@ import {
 } from '../../../shared/contracts/index.js';
 import { normalizeCategoryName } from '../../../shared/domain/money.js';
 import type { AppEnv } from '../../config/env.js';
-import { DEFAULT_USER_ID, seedDefaultCategories } from '../../db/database.js';
+import {
+  DEFAULT_USER_ID,
+  type DbAdapter,
+  seedDefaultCategoriesForAdapter,
+} from '../../db/database.js';
 
 const SESSION_COOKIE_NAME = 'pf_session';
 const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -134,17 +137,10 @@ function verifySessionToken(
   }
 }
 
-export function registerAuthModule(app: FastifyInstance, env: AppEnv, db: DatabaseSync): void {
+export function registerAuthModule(app: FastifyInstance, env: AppEnv, db: DbAdapter): void {
   const attemptsByIp = new Map<string, RateLimitEntry>();
   const isSecureCookie = env.NODE_ENV === 'production';
   let revokedBeforeMs = 0;
-
-  const findUserByUsernameStmt = db.prepare(
-    'SELECT id, name, username, password_hash FROM users WHERE username_normalized = ?',
-  );
-  const insertUserStmt = db.prepare(
-    'INSERT INTO users (id, name, username, username_normalized, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-  );
 
   app.get('/api/health', async () => {
     return {
@@ -157,7 +153,10 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv, db: Databa
     const input = registerRequestSchema.parse(request.body ?? {});
     const usernameNorm = normalizeCategoryName(input.username);
 
-    const existing = findUserByUsernameStmt.get(usernameNorm) as UserRow | undefined;
+    const existing = await db.queryOne<UserRow>(
+      'SELECT id, name, username, password_hash FROM users WHERE username_normalized = ?',
+      [usernameNorm],
+    );
     if (existing || usernameNorm === 'admin') {
       return reply.code(409).send({
         error: {
@@ -171,16 +170,12 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv, db: Databa
     const nowIso = new Date().toISOString();
     const passwordHash = hashUserPassword(input.password);
 
-    insertUserStmt.run(
-      userId,
-      input.name.trim(),
-      input.username.trim(),
-      usernameNorm,
-      passwordHash,
-      nowIso,
+    await db.run(
+      'INSERT INTO users (id, name, username, username_normalized, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, input.name.trim(), input.username.trim(), usernameNorm, passwordHash, nowIso],
     );
 
-    seedDefaultCategories(db, userId);
+    await seedDefaultCategoriesForAdapter(db, userId);
 
     const user: UserDto = {
       id: userId,
@@ -242,7 +237,10 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv, db: Databa
     let authenticatedUser: UserDto | null = null;
 
     if (usernameNorm !== 'admin') {
-      const dbUser = findUserByUsernameStmt.get(usernameNorm) as UserRow | undefined;
+      const dbUser = await db.queryOne<UserRow>(
+        'SELECT id, name, username, password_hash FROM users WHERE username_normalized = ?',
+        [usernameNorm],
+      );
       if (dbUser && verifyUserPassword(body.password, dbUser.password_hash)) {
         authenticatedUser = {
           id: dbUser.id,
@@ -274,7 +272,7 @@ export function registerAuthModule(app: FastifyInstance, env: AppEnv, db: Databa
     }
 
     attemptsByIp.delete(clientIp);
-    seedDefaultCategories(db, authenticatedUser.id);
+    await seedDefaultCategoriesForAdapter(db, authenticatedUser.id);
 
     const tokenIssuedAtMs = Math.max(nowMs, revokedBeforeMs + 1);
     const token = signSessionToken(authenticatedUser, env.SESSION_SECRET, tokenIssuedAtMs);

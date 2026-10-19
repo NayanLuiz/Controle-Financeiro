@@ -119,6 +119,7 @@ Permitir ao usuário:
 - [x] T-14: Migração de banco de dados e rotas backend (`database.ts`, `transactions.ts`) com testes de integração.
 - [x] T-15: Componentes e UI no Frontend (`tokens.css`, `TransactionModal.tsx`, `TransactionsView.tsx`, `DashboardView.tsx`).
 - [x] T-16: Validação de acessibilidade, testes E2E/UI e verificação geral (`npm run check`).
+- [x] T-17: Persistência permanente na Vercel com adaptador Neon PostgreSQL Serverless (`NeonDbAdapter`, ADR-0003).
 
 
 ## Riscos e questões abertas

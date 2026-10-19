@@ -8,6 +8,10 @@ const rawEnvSchema = z.object({
   APP_PASSWORD: z.string().optional(),
   SESSION_SECRET: z.string().optional(),
   DATABASE_PATH: z.string().trim().min(1).optional(),
+  DATABASE_URL: z.string().trim().min(1).optional(),
+  POSTGRES_URL: z.string().trim().min(1).optional(),
+  POSTGRES_PRISMA_URL: z.string().trim().min(1).optional(),
+  POSTGRES_URL_NON_POOLING: z.string().trim().min(1).optional(),
   VERCEL: z.string().optional(),
 });
 
@@ -17,11 +21,18 @@ export interface AppEnv {
   readonly APP_PASSWORD: string;
   readonly SESSION_SECRET: string;
   readonly DATABASE_PATH: string;
+  readonly DATABASE_URL?: string;
 }
 
 export function loadEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
   const parsed = rawEnvSchema.parse(raw);
   const isVercel = parsed.VERCEL === '1';
+  const databaseUrl =
+    parsed.DATABASE_URL ||
+    parsed.POSTGRES_URL ||
+    parsed.POSTGRES_PRISMA_URL ||
+    parsed.POSTGRES_URL_NON_POOLING ||
+    undefined;
 
   const appPassword = parsed.APP_PASSWORD?.trim() ?? '';
   if (
@@ -59,5 +70,6 @@ export function loadEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
         ? sessionSecret
         : DEFAULT_DEV_SECRET,
     DATABASE_PATH: parsed.DATABASE_PATH ?? defaultDbPath,
+    DATABASE_URL: databaseUrl,
   };
 }

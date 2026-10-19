@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance } from 'fastify';
 import {
   type EntryType,
@@ -14,6 +13,7 @@ import {
 } from '../../../shared/contracts/index.js';
 import { addYearsCivilDate, parseCivilDate } from '../../../shared/domain/civil-date.js';
 import { generateMonthlyRecurringDates } from '../../../shared/domain/recurrence.js';
+import type { DbAdapter } from '../../db/database.js';
 import { getRequestUserId } from '../auth/auth.js';
 
 interface TransactionJoinedRow {
@@ -68,16 +68,7 @@ function mapTransactionRow(row: TransactionJoinedRow): TransactionDto {
   };
 }
 
-export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSync): void {
-  const findCategoryStmt = db.prepare(
-    'SELECT id, name, type, color, is_archived FROM categories WHERE id = ? AND user_id = ?',
-  );
-  const findTxByIdStmt = db.prepare(
-    `SELECT id, category_id, date, status, is_recurring, recurring_group_id, created_at
-     FROM transactions
-     WHERE id = ? AND user_id = ?`,
-  );
-
+export function registerTransactionsModule(app: FastifyInstance, db: DbAdapter): void {
   app.get('/api/transactions', async (request) => {
     const userId = getRequestUserId(request);
     const query = listTransactionsQuerySchema.parse(request.query);
@@ -102,56 +93,53 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
-    const countRow = db
-      .prepare(`SELECT COUNT(*) AS total FROM transactions t ${whereClause}`)
-      .get(...params) as { total: number | bigint } | undefined;
+    const countRow = await db.queryOne<{ total: number | bigint }>(
+      `SELECT COUNT(*) AS total FROM transactions t ${whereClause}`,
+      params,
+    );
 
     const totalItems = Number(countRow?.total ?? 0);
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / query.pageSize);
     const offset = (query.page - 1) * query.pageSize;
 
-    const rows = db
-      .prepare(
-        `SELECT
-          t.id,
-          t.type,
-          t.amount_cents,
-          t.date,
-          t.description,
-          t.category_id,
-          c.name AS category_name,
-          c.color AS category_color,
-          c.is_archived AS category_is_archived,
-          t.status,
-          t.is_recurring,
-          t.recurring_group_id,
-          t.created_at
-        FROM transactions t
-        INNER JOIN categories c ON c.id = t.category_id
-        ${whereClause}
-        ORDER BY t.date DESC, t.created_at DESC, t.id DESC
-        LIMIT ? OFFSET ?`,
-      )
-      .all(...params, query.pageSize, offset) as unknown as TransactionJoinedRow[];
+    const rows = await db.query<TransactionJoinedRow>(
+      `SELECT
+        t.id,
+        t.type,
+        t.amount_cents,
+        t.date,
+        t.description,
+        t.category_id,
+        c.name AS category_name,
+        c.color AS category_color,
+        c.is_archived AS category_is_archived,
+        t.status,
+        t.is_recurring,
+        t.recurring_group_id,
+        t.created_at
+      FROM transactions t
+      INNER JOIN categories c ON c.id = t.category_id
+      ${whereClause}
+      ORDER BY t.date DESC, t.created_at DESC, t.id DESC
+      LIMIT ? OFFSET ?`,
+      [...params, query.pageSize, offset],
+    );
 
-    const pendingSummaryRow = db
-      .prepare(
-        `SELECT
-          COALESCE(SUM(CASE WHEN type = 'EXPENSE' AND status = 'PENDING' THEN amount_cents ELSE 0 END), 0) AS pending_expense_cents,
-          COALESCE(SUM(CASE WHEN type = 'INCOME' AND status = 'PENDING' THEN amount_cents ELSE 0 END), 0) AS pending_income_cents,
-          COALESCE(SUM(CASE WHEN type = 'EXPENSE' AND status = 'PENDING' THEN 1 ELSE 0 END), 0) AS pending_expense_count,
-          COALESCE(SUM(CASE WHEN type = 'INCOME' AND status = 'PENDING' THEN 1 ELSE 0 END), 0) AS pending_income_count
-        FROM transactions
-        WHERE user_id = ? AND year = ? AND month = ?`,
-      )
-      .get(userId, query.year, query.month) as
-      | {
-          pending_expense_cents: number;
-          pending_income_cents: number;
-          pending_expense_count: number;
-          pending_income_count: number;
-        }
-      | undefined;
+    const pendingSummaryRow = await db.queryOne<{
+      pending_expense_cents: number;
+      pending_income_cents: number;
+      pending_expense_count: number;
+      pending_income_count: number;
+    }>(
+      `SELECT
+        COALESCE(SUM(CASE WHEN type = 'EXPENSE' AND status = 'PENDING' THEN amount_cents ELSE 0 END), 0) AS pending_expense_cents,
+        COALESCE(SUM(CASE WHEN type = 'INCOME' AND status = 'PENDING' THEN amount_cents ELSE 0 END), 0) AS pending_income_cents,
+        COALESCE(SUM(CASE WHEN type = 'EXPENSE' AND status = 'PENDING' THEN 1 ELSE 0 END), 0) AS pending_expense_count,
+        COALESCE(SUM(CASE WHEN type = 'INCOME' AND status = 'PENDING' THEN 1 ELSE 0 END), 0) AS pending_income_count
+      FROM transactions
+      WHERE user_id = ? AND year = ? AND month = ?`,
+      [userId, query.year, query.month],
+    );
 
     const pendingSummary: PeriodPendingSummaryDto = {
       pendingExpenseCents: Number(pendingSummaryRow?.pending_expense_cents ?? 0),
@@ -174,17 +162,18 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     return response;
   });
 
-  const validateTransactionInput = (
+  const validateTransactionInput = async (
     userId: string,
     input: { type: EntryType; date: string; categoryId: string },
     allowedArchivedCategoryId?: string,
-  ):
+  ): Promise<
     | {
         ok: true;
         dateParts: { year: number; month: number; day: number };
         category: CategoryLookupRow;
       }
-    | { ok: false; statusCode: number; code: string; message: string } => {
+    | { ok: false; statusCode: number; code: string; message: string }
+  > => {
     const dateParts = parseCivilDate(input.date);
     if (!dateParts) {
       return {
@@ -195,9 +184,10 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
       };
     }
 
-    const category = findCategoryStmt.get(input.categoryId, userId) as
-      | CategoryLookupRow
-      | undefined;
+    const category = await db.queryOne<CategoryLookupRow>(
+      'SELECT id, name, type, color, is_archived FROM categories WHERE id = ? AND user_id = ?',
+      [input.categoryId, userId],
+    );
     if (!category) {
       return {
         ok: false,
@@ -229,7 +219,7 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
   app.post('/api/transactions', async (request, reply) => {
     const userId = getRequestUserId(request);
     const input = upsertTransactionSchema.parse(request.body ?? {});
-    const validation = validateTransactionInput(userId, input);
+    const validation = await validateTransactionInput(userId, input);
     if (!validation.ok) {
       return reply.code(validation.statusCode).send({
         error: {
@@ -243,12 +233,10 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     const isRecurring = Boolean(input.isRecurring);
     const now = new Date().toISOString();
 
-    const insertStmt = db.prepare(
-      `INSERT INTO transactions (
-        id, user_id, type, amount_cents, date, year, month, description, category_id,
-        status, is_recurring, recurring_group_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
+    const insertSql = `INSERT INTO transactions (
+      id, user_id, type, amount_cents, date, year, month, description, category_id,
+      status, is_recurring, recurring_group_id, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     const initialId = randomUUID();
 
@@ -257,9 +245,8 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
       const occurrences = generateMonthlyRecurringDates(input.date, recurrenceEndDate);
       const recurringGroupId = randomUUID();
 
-      db.exec('BEGIN IMMEDIATE');
-      try {
-        insertStmt.run(
+      await db.transaction(async (tx) => {
+        await tx.run(insertSql, [
           initialId,
           userId,
           input.type,
@@ -274,12 +261,12 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
           recurringGroupId,
           now,
           now,
-        );
+        ]);
 
         for (const occDate of occurrences) {
           const occParts = parseCivilDate(occDate);
           if (occParts) {
-            insertStmt.run(
+            await tx.run(insertSql, [
               randomUUID(),
               userId,
               input.type,
@@ -294,14 +281,10 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
               recurringGroupId,
               now,
               now,
-            );
+            ]);
           }
         }
-        db.exec('COMMIT');
-      } catch (err) {
-        db.exec('ROLLBACK');
-        throw err;
-      }
+      });
 
       const created: TransactionDto = {
         id: initialId,
@@ -322,7 +305,7 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
       return reply.code(201).send(created);
     }
 
-    insertStmt.run(
+    await db.run(insertSql, [
       initialId,
       userId,
       input.type,
@@ -337,7 +320,7 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
       null,
       now,
       now,
-    );
+    ]);
 
     const created: TransactionDto = {
       id: initialId,
@@ -363,27 +346,26 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     const { id } = request.params;
     const input = updateTransactionStatusSchema.parse(request.body ?? {});
 
-    const existing = db
-      .prepare(
-        `SELECT
-          t.id,
-          t.type,
-          t.amount_cents,
-          t.date,
-          t.description,
-          t.category_id,
-          c.name AS category_name,
-          c.color AS category_color,
-          c.is_archived AS category_is_archived,
-          t.status,
-          t.is_recurring,
-          t.recurring_group_id,
-          t.created_at
-        FROM transactions t
-        INNER JOIN categories c ON c.id = t.category_id
-        WHERE t.id = ? AND t.user_id = ?`,
-      )
-      .get(id, userId) as TransactionJoinedRow | undefined;
+    const existing = await db.queryOne<TransactionJoinedRow>(
+      `SELECT
+        t.id,
+        t.type,
+        t.amount_cents,
+        t.date,
+        t.description,
+        t.category_id,
+        c.name AS category_name,
+        c.color AS category_color,
+        c.is_archived AS category_is_archived,
+        t.status,
+        t.is_recurring,
+        t.recurring_group_id,
+        t.created_at
+      FROM transactions t
+      INNER JOIN categories c ON c.id = t.category_id
+      WHERE t.id = ? AND t.user_id = ?`,
+      [id, userId],
+    );
 
     if (!existing) {
       return reply.code(404).send({
@@ -395,9 +377,10 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     }
 
     const now = new Date().toISOString();
-    db.prepare(
+    await db.run(
       'UPDATE transactions SET status = ?, updated_at = ? WHERE id = ? AND user_id = ?',
-    ).run(input.status, now, id, userId);
+      [input.status, now, id, userId],
+    );
 
     const updated: TransactionDto = {
       ...mapTransactionRow(existing),
@@ -410,7 +393,12 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
   app.put<{ Params: { id: string } }>('/api/transactions/:id', async (request, reply) => {
     const userId = getRequestUserId(request);
     const { id } = request.params;
-    const existingTx = findTxByIdStmt.get(id, userId) as ExistingTxRow | undefined;
+    const existingTx = await db.queryOne<ExistingTxRow>(
+      `SELECT id, category_id, date, status, is_recurring, recurring_group_id, created_at
+       FROM transactions
+       WHERE id = ? AND user_id = ?`,
+      [id, userId],
+    );
 
     if (!existingTx) {
       return reply.code(404).send({
@@ -422,7 +410,7 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     }
 
     const input = upsertTransactionSchema.parse(request.body ?? {});
-    const validation = validateTransactionInput(userId, input, existingTx.category_id);
+    const validation = await validateTransactionInput(userId, input, existingTx.category_id);
     if (!validation.ok) {
       return reply.code(validation.statusCode).send({
         error: {
@@ -435,23 +423,24 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     const nextStatus = input.status ?? existingTx.status;
 
     const now = new Date().toISOString();
-    db.prepare(
+    await db.run(
       `UPDATE transactions
        SET type = ?, amount_cents = ?, date = ?, year = ?, month = ?, description = ?,
            category_id = ?, status = ?, updated_at = ?
        WHERE id = ? AND user_id = ?`,
-    ).run(
-      input.type,
-      input.amountCents,
-      input.date,
-      dateParts.year,
-      dateParts.month,
-      input.description,
-      input.categoryId,
-      nextStatus,
-      now,
-      id,
-      userId,
+      [
+        input.type,
+        input.amountCents,
+        input.date,
+        dateParts.year,
+        dateParts.month,
+        input.description,
+        input.categoryId,
+        nextStatus,
+        now,
+        id,
+        userId,
+      ],
     );
 
     const updated: TransactionDto = {
@@ -478,7 +467,12 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     const { id } = request.params;
     const { scope } = deleteTransactionQuerySchema.parse(request.query ?? {});
 
-    const existingTx = findTxByIdStmt.get(id, userId) as ExistingTxRow | undefined;
+    const existingTx = await db.queryOne<ExistingTxRow>(
+      `SELECT id, category_id, date, status, is_recurring, recurring_group_id, created_at
+       FROM transactions
+       WHERE id = ? AND user_id = ?`,
+      [id, userId],
+    );
     if (!existingTx) {
       return reply.code(404).send({
         error: {
@@ -489,14 +483,15 @@ export function registerTransactionsModule(app: FastifyInstance, db: DatabaseSyn
     }
 
     if (scope === 'following' && existingTx.recurring_group_id) {
-      db.prepare(
+      await db.run(
         `DELETE FROM transactions
          WHERE user_id = ? AND recurring_group_id = ? AND date >= ?`,
-      ).run(userId, existingTx.recurring_group_id, existingTx.date);
+        [userId, existingTx.recurring_group_id, existingTx.date],
+      );
       return reply.code(204).send();
     }
 
-    db.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').run(id, userId);
+    await db.run('DELETE FROM transactions WHERE id = ? AND user_id = ?', [id, userId]);
     return reply.code(204).send();
   });
 }

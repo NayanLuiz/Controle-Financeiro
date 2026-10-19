@@ -1,4 +1,3 @@
-import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance } from 'fastify';
 import {
   type CategoryShareDto,
@@ -7,6 +6,7 @@ import {
   periodQuerySchema,
 } from '../../../shared/contracts/index.js';
 import { calculateSharePercentage } from '../../../shared/domain/budget-status.js';
+import type { DbAdapter } from '../../db/database.js';
 import { getRequestUserId } from '../auth/auth.js';
 import { getBudgetProgressItems } from '../budgets/budgets.js';
 
@@ -19,27 +19,26 @@ interface CategoryAggregateRow {
   total_amount_cents: number;
 }
 
-export function registerDashboardModule(app: FastifyInstance, db: DatabaseSync): void {
+export function registerDashboardModule(app: FastifyInstance, db: DbAdapter): void {
   app.get('/api/dashboard', async (request) => {
     const userId = getRequestUserId(request);
     const query = periodQuerySchema.parse(request.query);
 
-    const categoryRows = db
-      .prepare(
-        `SELECT
-          c.id AS category_id,
-          c.name AS category_name,
-          c.color AS category_color,
-          c.is_archived,
-          t.type,
-          SUM(t.amount_cents) AS total_amount_cents
-        FROM transactions t
-        INNER JOIN categories c ON c.id = t.category_id
-        WHERE t.user_id = ? AND t.year = ? AND t.month = ?
-        GROUP BY c.id, c.name, c.color, c.is_archived, t.type
-        ORDER BY total_amount_cents DESC, c.name COLLATE NOCASE ASC`,
-      )
-      .all(userId, query.year, query.month) as unknown as CategoryAggregateRow[];
+    const categoryRows = await db.query<CategoryAggregateRow>(
+      `SELECT
+        c.id AS category_id,
+        c.name AS category_name,
+        c.color AS category_color,
+        c.is_archived,
+        t.type,
+        SUM(t.amount_cents) AS total_amount_cents
+      FROM transactions t
+      INNER JOIN categories c ON c.id = t.category_id
+      WHERE t.user_id = ? AND t.year = ? AND t.month = ?
+      GROUP BY c.id, c.name, c.color, c.is_archived, t.type
+      ORDER BY total_amount_cents DESC, c.name COLLATE NOCASE ASC`,
+      [userId, query.year, query.month],
+    );
 
     let totalIncomeCents = 0;
     let totalExpenseCents = 0;
@@ -68,7 +67,7 @@ export function registerDashboardModule(app: FastifyInstance, db: DatabaseSync):
       };
     });
 
-    const budgetProgress = getBudgetProgressItems(db, userId, query.year, query.month);
+    const budgetProgress = await getBudgetProgressItems(db, userId, query.year, query.month);
 
     let totalBudgetedCents = 0;
     let totalBudgetSpentCents = 0;

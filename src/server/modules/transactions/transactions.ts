@@ -11,7 +11,12 @@ import {
   updateTransactionStatusSchema,
   upsertTransactionSchema,
 } from '../../../shared/contracts/index.js';
-import { addYearsCivilDate, parseCivilDate } from '../../../shared/domain/civil-date.js';
+import {
+  addYearsCivilDate,
+  formatCivilDatePtBr,
+  parseCivilDate,
+} from '../../../shared/domain/civil-date.js';
+import { formatCentsToBrl } from '../../../shared/domain/money.js';
 import { generateMonthlyRecurringDates } from '../../../shared/domain/recurrence.js';
 import type { DbAdapter } from '../../db/database.js';
 import { getRequestUserId } from '../auth/auth.js';
@@ -160,6 +165,87 @@ export function registerTransactionsModule(app: FastifyInstance, db: DbAdapter):
     };
 
     return response;
+  });
+
+  app.get('/api/transactions/export', async (request, reply) => {
+    const userId = getRequestUserId(request);
+    const query = listTransactionsQuerySchema.parse(request.query);
+    const conditions: string[] = ['t.user_id = ?', 't.year = ?', 't.month = ?'];
+    const params: Array<string | number> = [userId, query.year, query.month];
+
+    if (query.type) {
+      conditions.push('t.type = ?');
+      params.push(query.type);
+    }
+    if (query.status) {
+      conditions.push('t.status = ?');
+      params.push(query.status);
+    }
+    if (query.categoryId) {
+      conditions.push('t.category_id = ?');
+      params.push(query.categoryId);
+    }
+    if (query.search && query.search.length > 0) {
+      conditions.push('LOWER(t.description) LIKE ?');
+      params.push(`%${query.search.toLocaleLowerCase('pt-BR')}%`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+    const rows = await db.query<TransactionJoinedRow>(
+      `SELECT
+        t.id,
+        t.type,
+        t.amount_cents,
+        t.date,
+        t.description,
+        t.category_id,
+        c.name AS category_name,
+        c.color AS category_color,
+        c.is_archived AS category_is_archived,
+        t.status,
+        t.is_recurring,
+        t.recurring_group_id,
+        t.created_at
+      FROM transactions t
+      INNER JOIN categories c ON c.id = t.category_id
+      ${whereClause}
+      ORDER BY t.date DESC, t.created_at DESC`,
+      params,
+    );
+
+    const escapeCsv = (str: string): string => {
+      if (str.includes(';') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const lines: string[] = ['Data;Tipo;Categoria;Descrição;Status;Valor (R$)'];
+
+    for (const row of rows) {
+      const dateFormatted = formatCivilDatePtBr(row.date);
+      const typeLabel = row.type === 'INCOME' ? 'Receita' : 'Despesa';
+      const statusLabel = row.status === 'PAID' ? 'Pago' : 'Pendente';
+      const amountFormatted = formatCentsToBrl(Number(row.amount_cents));
+      lines.push(
+        [
+          dateFormatted,
+          typeLabel,
+          escapeCsv(row.category_name),
+          escapeCsv(row.description),
+          statusLabel,
+          escapeCsv(amountFormatted),
+        ].join(';'),
+      );
+    }
+
+    const csvContent = `\uFEFF${lines.join('\r\n')}`;
+    const filename = `extrato-${query.year}-${String(query.month).padStart(2, '0')}.csv`;
+
+    return reply
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(csvContent);
   });
 
   const validateTransactionInput = async (

@@ -4,8 +4,14 @@ import { formatCentsToBrl, parseDigitsToCents } from '../../shared/domain/money.
 import { ApiRequestError, apiClient } from '../api/client.js';
 import { BudgetProgressBar } from '../components/BudgetProgressBar.js';
 import { CategoryBadge } from '../components/CategoryBadge.js';
+import { ConfirmModal } from '../components/ConfirmModal.js';
 import { formatMonthYearLabel } from '../components/MonthYearPicker.js';
-import { StatusBadge, formatBudgetStatusText } from '../components/StatusBadge.js';
+import {
+  StatusBadge,
+  formatBudgetStatusText,
+  formatPercentagePtBr,
+} from '../components/StatusBadge.js';
+import { useToast } from '../components/Toast.js';
 
 export interface BudgetsViewProps {
   readonly month: number;
@@ -68,12 +74,15 @@ function BudgetLimitForm({
 }
 
 export function BudgetsView({ month, year, onDataChanged }: BudgetsViewProps) {
+  const toast = useToast();
   const [data, setData] = useState<BudgetsResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [limitCentsInput, setLimitCentsInput] = useState<number>(0);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isCopying, setIsCopying] = useState<boolean>(false);
+  const [deletingBudget, setDeletingBudget] = useState<BudgetProgressDto | null>(null);
 
   const loadBudgets = useCallback(async () => {
     setIsLoading(true);
@@ -117,13 +126,16 @@ export function BudgetsView({ month, year, onDataChanged }: BudgetsViewProps) {
         limitCents: limitCentsInput,
       });
       setEditingCategoryId(null);
+      toast.success('Meta de orçamento salva com sucesso!');
       onDataChanged();
       void loadBudgets();
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setValidationError(err.message);
+        toast.error(err.message);
       } else {
         setValidationError('Erro ao salvar a meta de orçamento.');
+        toast.error('Erro ao salvar a meta de orçamento.');
       }
     } finally {
       setIsSaving(false);
@@ -133,18 +145,51 @@ export function BudgetsView({ month, year, onDataChanged }: BudgetsViewProps) {
   const handleDeleteBudget = async (budget: BudgetProgressDto) => {
     try {
       await apiClient.deleteBudget(budget.id);
+      setDeletingBudget(null);
+      toast.success('Meta de orçamento removida.');
       onDataChanged();
       void loadBudgets();
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setValidationError(err.message);
+        toast.error(err.message);
       }
+    }
+  };
+
+  const handleCopyPreviousBudgets = async () => {
+    setIsCopying(true);
+    try {
+      const res = await apiClient.copyPreviousBudgets({ month, year });
+      if (res.copiedCount > 0) {
+        toast.success(
+          `${res.copiedCount} ${res.copiedCount === 1 ? 'meta copiada' : 'metas copiadas'} do mês anterior!`,
+        );
+        onDataChanged();
+        void loadBudgets();
+      } else {
+        toast.info('Nenhuma nova meta do mês anterior disponível para copiar.');
+      }
+    } catch {
+      toast.error('Não foi possível copiar as metas do mês anterior.');
+    } finally {
+      setIsCopying(false);
     }
   };
 
   const budgetedItems = data?.items ?? [];
   const unbudgetedItems = data?.unbudgetedExpenseCategories ?? [];
   const periodLabel = formatMonthYearLabel(month, year);
+
+  let totalBudgetedCents = 0;
+  let totalSpentCents = 0;
+  for (const b of budgetedItems) {
+    totalBudgetedCents += b.limitCents;
+    totalSpentCents += b.spentCents;
+  }
+  const overallUsagePct =
+    totalBudgetedCents > 0 ? Math.round((totalSpentCents / totalBudgetedCents) * 10000) / 100 : 0;
+  const overallRemainingCents = totalBudgetedCents - totalSpentCents;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -154,10 +199,129 @@ export function BudgetsView({ month, year, onDataChanged }: BudgetsViewProps) {
         </div>
       )}
 
+      {/* Consolidated Monthly Budget Overview */}
+      {budgetedItems.length > 0 && (
+        <section className="card" aria-label="Resumo geral do orçamento mensal">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              marginBottom: '0.75rem',
+            }}
+          >
+            <h2 style={{ margin: 0, fontSize: '1.125rem' }}>Teto Geral do Mês</h2>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleCopyPreviousBudgets}
+              disabled={isCopying}
+              title="Copiar metas cadastradas no mês anterior para este mês"
+            >
+              {isCopying ? 'Copiando...' : '📋 Copiar metas do mês anterior'}
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '1rem',
+              marginBottom: '0.85rem',
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                Total Orçado
+              </span>
+              <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+                {formatCentsToBrl(totalBudgetedCents)}
+              </div>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                Total Realizado
+              </span>
+              <div
+                className="tabular-nums"
+                style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-expense-text)' }}
+              >
+                {formatCentsToBrl(totalSpentCents)}
+              </div>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                {overallRemainingCents >= 0 ? 'Folga Orçamentária' : 'Excesso no Teto Geral'}
+              </span>
+              <div
+                className="tabular-nums"
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 800,
+                  color:
+                    overallRemainingCents >= 0
+                      ? 'var(--color-income-text)'
+                      : 'var(--color-expense-text)',
+                }}
+              >
+                {formatCentsToBrl(Math.abs(overallRemainingCents))}
+              </div>
+            </div>
+          </div>
+
+          <div className="progress-track" style={{ height: '10px' }}>
+            <div
+              className={`progress-fill ${
+                overallUsagePct > 100
+                  ? 'progress-fill-exceeded'
+                  : overallUsagePct >= 80
+                    ? 'progress-fill-warning'
+                    : 'progress-fill-normal'
+              }`}
+              style={{ width: `${Math.min(100, overallUsagePct)}%` }}
+            />
+          </div>
+          <div
+            className="tabular-nums"
+            style={{
+              fontSize: '0.75rem',
+              color: 'var(--color-text-muted)',
+              marginTop: '0.4rem',
+              textAlign: 'right',
+            }}
+          >
+            {formatPercentagePtBr(overallUsagePct)} do teto mensal comprometido
+          </div>
+        </section>
+      )}
+
       <section className="card" aria-labelledby="active-budgets-heading">
-        <h2 id="active-budgets-heading" style={{ marginTop: 0, fontSize: '1.125rem' }}>
-          Metas Ativas ({periodLabel})
-        </h2>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            marginBottom: '1rem',
+          }}
+        >
+          <h2 id="active-budgets-heading" style={{ margin: 0, fontSize: '1.125rem' }}>
+            Metas Ativas ({periodLabel})
+          </h2>
+          {budgetedItems.length === 0 && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleCopyPreviousBudgets}
+              disabled={isCopying}
+            >
+              {isCopying ? 'Copiando...' : '📋 Copiar metas do mês anterior'}
+            </button>
+          )}
+        </div>
 
         {isLoading && !data ? (
           <p aria-busy="true">Carregando metas...</p>
@@ -213,7 +377,7 @@ export function BudgetsView({ month, year, onDataChanged }: BudgetsViewProps) {
                         type="button"
                         className="btn btn-danger"
                         style={{ minHeight: '36px', padding: '0.25rem 0.6rem' }}
-                        onClick={() => void handleDeleteBudget(budget)}
+                        onClick={() => setDeletingBudget(budget)}
                       >
                         Remover meta
                       </button>
@@ -335,6 +499,19 @@ export function BudgetsView({ month, year, onDataChanged }: BudgetsViewProps) {
           </ul>
         )}
       </section>
+
+      {deletingBudget && (
+        <ConfirmModal
+          isOpen={true}
+          title="Remover Meta de Orçamento"
+          message={`Tem certeza que deseja remover o teto de ${formatCentsToBrl(deletingBudget.limitCents)} para a categoria "${deletingBudget.categoryName}" em ${periodLabel}?`}
+          confirmLabel="Remover"
+          cancelLabel="Cancelar"
+          isDestructive={true}
+          onConfirm={() => void handleDeleteBudget(deletingBudget)}
+          onCancel={() => setDeletingBudget(null)}
+        />
+      )}
     </div>
   );
 }

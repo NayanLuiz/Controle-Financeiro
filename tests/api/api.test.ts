@@ -1047,4 +1047,92 @@ describe('Personal Finance API Integration (CA-1 to CA-25)', () => {
       expect(janItems.some((t) => t.recurringGroupId === initial.recurringGroupId)).toBe(false);
     });
   });
+
+  describe('T-12: Smart Enhancements (CSV Export, Copy Budgets, Daily Trend)', () => {
+    it('exports transactions to CSV with UTF-8 BOM and correct Brazilian headers', async () => {
+      const categories = await getCategories();
+      const cat = categories.find((c) => c.type === 'EXPENSE');
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/transactions',
+        headers: { cookie: authCookie },
+        payload: {
+          type: 'EXPENSE',
+          amountCents: 4500,
+          date: '2026-10-15',
+          description: 'Padaria Express',
+          categoryId: cat?.id,
+          status: 'PAID',
+        },
+      });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/transactions/export?month=10&year=2026',
+        headers: { cookie: authCookie },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toContain('text/csv');
+      expect(res.headers['content-disposition']).toContain('extrato-2026-10.csv');
+      expect(res.body.startsWith('\uFEFF')).toBe(true);
+      expect(res.body).toContain('Data;Tipo;Categoria;Descrição;Status;Valor (R$)');
+      expect(res.body).toContain('Padaria Express');
+      expect(res.body).toContain('45,00');
+    });
+
+    it('copies active budgets from previous month to current month', async () => {
+      const categories = await getCategories();
+      const expenseCat = categories.find((c) => c.type === 'EXPENSE');
+
+      // Cria orçamento no mês anterior (09/2026)
+      await app.inject({
+        method: 'PUT',
+        url: '/api/budgets',
+        headers: { cookie: authCookie },
+        payload: {
+          categoryId: expenseCat?.id,
+          month: 9,
+          year: 2026,
+          limitCents: 85000,
+        },
+      });
+
+      // Copia metas para 10/2026
+      const copyRes = await app.inject({
+        method: 'POST',
+        url: '/api/budgets/copy-previous',
+        headers: { cookie: authCookie },
+        payload: { month: 10, year: 2026 },
+      });
+
+      expect(copyRes.statusCode).toBe(200);
+      const copyData = copyRes.json() as { copiedCount: number; message: string };
+      expect(copyData.copiedCount).toBeGreaterThanOrEqual(1);
+
+      // Valida que a meta existe no mês 10/2026
+      const budgetsRes = await app.inject({
+        method: 'GET',
+        url: '/api/budgets?month=10&year=2026',
+        headers: { cookie: authCookie },
+      });
+      const budgets = (budgetsRes.json() as BudgetsResponseDto).items;
+      const targetBudget = budgets.find((b) => b.categoryId === expenseCat?.id);
+      expect(targetBudget?.limitCents).toBe(85000);
+    });
+
+    it('returns dailyTrend and recentTransactions in dashboard response', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/dashboard?month=10&year=2026',
+        headers: { cookie: authCookie },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const dashboard = res.json() as DashboardResponseDto;
+      expect(Array.isArray(dashboard.dailyTrend)).toBe(true);
+      expect(Array.isArray(dashboard.recentTransactions)).toBe(true);
+    });
+  });
 });

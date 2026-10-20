@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   CategoryDto,
   EntryType,
@@ -10,7 +10,9 @@ import { formatCivilDatePtBr } from '../../shared/domain/civil-date.js';
 import { formatCentsToBrl } from '../../shared/domain/money.js';
 import { ApiRequestError, apiClient } from '../api/client.js';
 import { CategoryBadge } from '../components/CategoryBadge.js';
+import { ConfirmModal } from '../components/ConfirmModal.js';
 import { formatMonthYearLabel } from '../components/MonthYearPicker.js';
+import { useToast } from '../components/Toast.js';
 
 export interface TransactionsViewProps {
   readonly month: number;
@@ -33,6 +35,8 @@ export function TransactionsView({
   onEditTransaction,
   onDataChanged,
 }: TransactionsViewProps) {
+  const toast = useToast();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [filterType, setFilterType] = useState<EntryType | ''>(initialType);
   const [filterStatus, setFilterStatus] = useState<TransactionStatus | ''>('');
   const [filterCategoryId, setFilterCategoryId] = useState<string>(initialCategoryId);
@@ -43,6 +47,7 @@ export function TransactionsView({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deletingRecurringTx, setDeletingRecurringTx] = useState<TransactionDto | null>(null);
+  const [deletingSingleTx, setDeletingSingleTx] = useState<TransactionDto | null>(null);
 
   useEffect(() => {
     setFilterCategoryId(initialCategoryId);
@@ -73,6 +78,21 @@ export function TransactionsView({
   }, [month, year, filterType, filterStatus, filterCategoryId, searchTerm, page, pageSize]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement !== searchInputRef.current) {
+        const target = e.target as HTMLElement | null;
+        const tag = target?.tagName?.toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
+          e.preventDefault();
+          searchInputRef.current?.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     void loadTransactions();
   }, [loadTransactions]);
 
@@ -89,10 +109,14 @@ export function TransactionsView({
     });
     try {
       await apiClient.updateTransactionStatus(tx.id, nextStatus);
+      toast.success(
+        `Transação marcada como ${nextStatus === 'PAID' ? (tx.type === 'INCOME' ? 'recebida' : 'paga') : 'pendente'}.`,
+      );
       onDataChanged();
       void loadTransactions();
     } catch {
       setErrorMessage('Não foi possível alterar o status de pagamento.');
+      toast.error('Não foi possível alterar o status de pagamento.');
       void loadTransactions();
     }
   };
@@ -101,15 +125,32 @@ export function TransactionsView({
     try {
       await apiClient.deleteTransaction(tx.id, scope);
       setDeletingRecurringTx(null);
+      setDeletingSingleTx(null);
+      toast.success('Transação excluída com sucesso.');
       onDataChanged();
       void loadTransactions();
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setErrorMessage(err.message);
+        toast.error(err.message);
       } else {
         setErrorMessage('Erro ao excluir a transação.');
+        toast.error('Erro ao excluir a transação.');
       }
     }
+  };
+
+  const handleExportCsv = () => {
+    const url = apiClient.exportTransactionsCsvUrl({
+      month,
+      year,
+      type: filterType || undefined,
+      status: filterStatus || undefined,
+      categoryId: filterCategoryId || undefined,
+      search: searchTerm.trim() || undefined,
+    });
+    window.open(url, '_blank');
+    toast.success('Extrato CSV gerado para download!');
   };
 
   const hasActiveFilters =
@@ -128,9 +169,68 @@ export function TransactionsView({
   const periodLabel = formatMonthYearLabel(month, year);
   const pendingSummary = result?.pendingSummary;
 
+  let filterIncomeCents = 0;
+  let filterExpenseCents = 0;
+  for (const item of items) {
+    if (item.type === 'INCOME') {
+      filterIncomeCents += item.amountCents;
+    } else {
+      filterExpenseCents += item.amountCents;
+    }
+  }
+  const filterNetCents = filterIncomeCents - filterExpenseCents;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <section className="card" aria-label="Filtros de transações">
+        {/* Quick Filter Pills */}
+        <div
+          className="filter-pills-bar"
+          style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}
+        >
+          <button
+            type="button"
+            className={`pill-btn ${filterType === '' && filterStatus === '' ? 'pill-active' : ''}`}
+            onClick={() => {
+              setFilterType('');
+              setFilterStatus('');
+              setPage(1);
+            }}
+          >
+            Todas
+          </button>
+          <button
+            type="button"
+            className={`pill-btn ${filterType === 'EXPENSE' ? 'pill-active' : ''}`}
+            onClick={() => {
+              setFilterType('EXPENSE');
+              setPage(1);
+            }}
+          >
+            Despesas
+          </button>
+          <button
+            type="button"
+            className={`pill-btn ${filterType === 'INCOME' ? 'pill-active' : ''}`}
+            onClick={() => {
+              setFilterType('INCOME');
+              setPage(1);
+            }}
+          >
+            Receitas
+          </button>
+          <button
+            type="button"
+            className={`pill-btn ${filterStatus === 'PENDING' ? 'pill-active' : ''}`}
+            onClick={() => {
+              setFilterStatus('PENDING');
+              setPage(1);
+            }}
+          >
+            Pendentes
+          </button>
+        </div>
+
         <div
           style={{
             display: 'grid',
@@ -202,13 +302,14 @@ export function TransactionsView({
 
           <div className="field-group">
             <label htmlFor="filter-search-input" className="field-label">
-              Buscar descrição
+              Buscar descrição <kbd className="kbd-inline">/</kbd>
             </label>
             <input
+              ref={searchInputRef}
               id="filter-search-input"
               type="search"
               className="input-control"
-              placeholder="Ex.: Almoço, Aluguel..."
+              placeholder="Ex.: Almoço... (Atalho: /)"
               value={searchTerm}
               onChange={(event) => {
                 setSearchTerm(event.target.value);
@@ -217,22 +318,63 @@ export function TransactionsView({
             />
           </div>
 
-          {hasActiveFilters && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setFilterType('');
+                  setFilterStatus('');
+                  setFilterCategoryId('');
+                  setSearchTerm('');
+                  setPage(1);
+                }}
+              >
+                Limpar filtros
+              </button>
+            )}
+
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => {
-                setFilterType('');
-                setFilterStatus('');
-                setFilterCategoryId('');
-                setSearchTerm('');
-                setPage(1);
-              }}
+              onClick={handleExportCsv}
+              title="Baixar extrato do período em formato CSV para Excel/Sheets"
             >
-              Limpar filtros
+              📥 Exportar CSV
             </button>
-          )}
+          </div>
         </div>
+
+        {/* Filter Summary Metrics */}
+        {items.length > 0 && (
+          <div className="filter-summary-bar">
+            <span>
+              Exibindo: <strong>{meta.totalItems}</strong>{' '}
+              {meta.totalItems === 1 ? 'transação' : 'transações'}
+            </span>
+            <span>•</span>
+            <span className="tabular-nums" style={{ color: 'var(--color-income-text)' }}>
+              Entradas: <strong>+ {formatCentsToBrl(filterIncomeCents)}</strong>
+            </span>
+            <span>•</span>
+            <span className="tabular-nums" style={{ color: 'var(--color-expense-text)' }}>
+              Saídas: <strong>- {formatCentsToBrl(filterExpenseCents)}</strong>
+            </span>
+            <span>•</span>
+            <span className="tabular-nums">
+              Saldo:{' '}
+              <strong
+                style={{
+                  color:
+                    filterNetCents >= 0 ? 'var(--color-income-text)' : 'var(--color-expense-text)',
+                }}
+              >
+                {formatCentsToBrl(filterNetCents)}
+              </strong>
+            </span>
+          </div>
+        )}
       </section>
 
       {pendingSummary &&
@@ -400,7 +542,7 @@ export function TransactionsView({
                             if (tx.isRecurring) {
                               setDeletingRecurringTx(tx);
                             } else {
-                              void handleDelete(tx, 'single');
+                              setDeletingSingleTx(tx);
                             }
                           }}
                           aria-label={`Excluir transação ${tx.description}`}
@@ -516,6 +658,18 @@ export function TransactionsView({
             </div>
           </dialog>
         </div>
+      )}
+      {deletingSingleTx && (
+        <ConfirmModal
+          isOpen={true}
+          title="Excluir Transação"
+          message={`Tem certeza que deseja excluir "${deletingSingleTx.description}" (${formatCentsToBrl(deletingSingleTx.amountCents)})? Esta operação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          isDestructive={true}
+          onConfirm={() => void handleDelete(deletingSingleTx, 'single')}
+          onCancel={() => setDeletingSingleTx(null)}
+        />
       )}
     </div>
   );

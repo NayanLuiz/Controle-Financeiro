@@ -255,6 +255,23 @@ export interface CategoryShareDto {
   readonly sharePercentage: number;
 }
 
+export const copyPreviousBudgetsSchema = z.object({
+  month: monthQuerySchema,
+  year: yearQuerySchema,
+});
+export type CopyPreviousBudgetsInput = z.infer<typeof copyPreviousBudgetsSchema>;
+
+export interface CopyPreviousBudgetsResponseDto {
+  readonly copiedCount: number;
+  readonly items: readonly BudgetProgressDto[];
+}
+
+export interface DailyFlowDto {
+  readonly day: number;
+  readonly incomeCents: number;
+  readonly expenseCents: number;
+}
+
 export interface DashboardResponseDto {
   readonly month: number;
   readonly year: number;
@@ -271,4 +288,6 @@ export interface DashboardResponseDto {
   };
   readonly categoryBreakdown: readonly CategoryShareDto[];
   readonly budgetProgress: readonly BudgetProgressDto[];
+  readonly dailyTrend?: readonly DailyFlowDto[];
+  readonly recentTransactions?: readonly TransactionDto[];
 }

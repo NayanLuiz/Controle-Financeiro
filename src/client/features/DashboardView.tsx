@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
-import type { DashboardResponseDto, EntryType } from '../../shared/contracts/index.js';
+import type {
+  DashboardResponseDto,
+  EntryType,
+  TransactionDto,
+} from '../../shared/contracts/index.js';
+import { formatCivilDatePtBr, getDaysInMonth } from '../../shared/domain/civil-date.js';
 import { formatCentsToBrl } from '../../shared/domain/money.js';
 import { apiClient } from '../api/client.js';
 import { BudgetProgressBar } from '../components/BudgetProgressBar.js';
 import { CategoryBadge } from '../components/CategoryBadge.js';
+import { DailyTrendChart } from '../components/DailyTrendChart.js';
+import { DonutChart } from '../components/DonutChart.js';
 import { formatMonthYearLabel } from '../components/MonthYearPicker.js';
 import {
   StatusBadge,
@@ -17,6 +24,8 @@ export interface DashboardViewProps {
   readonly onOpenNewTransaction: () => void;
   readonly onNavigateToBudgets: () => void;
   readonly onFilterByCategory: (categoryId: string, type: EntryType) => void;
+  readonly onNavigateToTransactions?: () => void;
+  readonly onEditTransaction?: (tx: TransactionDto) => void;
 }
 
 export function DashboardView({
@@ -25,6 +34,8 @@ export function DashboardView({
   onOpenNewTransaction,
   onNavigateToBudgets,
   onFilterByCategory,
+  onNavigateToTransactions,
+  onEditTransaction,
 }: DashboardViewProps) {
   const [data, setData] = useState<DashboardResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -76,7 +87,14 @@ export function DashboardView({
     );
   }
 
-  const { summary, cashFlow, categoryBreakdown, budgetProgress } = data;
+  const {
+    summary,
+    cashFlow,
+    categoryBreakdown,
+    budgetProgress,
+    dailyTrend = [],
+    recentTransactions = [],
+  } = data;
   const maxCashFlow = Math.max(cashFlow.totalIncomeCents, cashFlow.totalExpenseCents, 1);
   const incomeBarPct =
     cashFlow.totalIncomeCents > 0 ? Math.round((cashFlow.totalIncomeCents / maxCashFlow) * 100) : 0;
@@ -100,6 +118,15 @@ export function DashboardView({
 
   const periodLabel = formatMonthYearLabel(month, year);
   const hasAnyTransactions = summary.totalIncomeCents > 0 || summary.totalExpenseCents > 0;
+
+  // Cálculos de Projeção e Ritmo Diário
+  const totalDaysInMonth = getDaysInMonth(year, month);
+  const now = new Date();
+  const isCurrentPeriod = now.getFullYear() === year && now.getMonth() + 1 === month;
+  const elapsedDays = isCurrentPeriod ? Math.max(1, now.getDate()) : totalDaysInMonth;
+  const daysRemaining = Math.max(0, totalDaysInMonth - elapsedDays);
+  const dailyBurnRateCents = Math.round(summary.totalExpenseCents / elapsedDays);
+  const projectedMonthExpenseCents = dailyBurnRateCents * totalDaysInMonth;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -185,6 +212,35 @@ export function DashboardView({
           </p>
         </article>
       </section>
+
+      {/* Smart Health Insights Bar */}
+      {hasAnyTransactions && (
+        <section className="smart-insights-bar" aria-label="Projeções financeiras do mês">
+          <div className="insight-pill">
+            <span className="insight-label">Média Diária de Gastos:</span>
+            <strong className="insight-val tabular-nums">
+              {formatCentsToBrl(dailyBurnRateCents)} / dia
+            </strong>
+          </div>
+          <div className="insight-pill">
+            <span className="insight-label">Projeção até Fechamento:</span>
+            <strong className="insight-val tabular-nums">
+              {formatCentsToBrl(projectedMonthExpenseCents)}
+            </strong>
+          </div>
+          <div className="insight-pill">
+            <span className="insight-label">Período:</span>
+            <strong className="insight-val tabular-nums">
+              {isCurrentPeriod
+                ? `${daysRemaining} dias restantes`
+                : `${totalDaysInMonth} dias apurados`}
+            </strong>
+          </div>
+        </section>
+      )}
+
+      {/* Daily Evolution Trend Chart */}
+      {dailyTrend.length > 0 && <DailyTrendChart month={month} year={year} items={dailyTrend} />}
 
       <div className="dashboard-split">
         <section className="card" aria-labelledby="cashflow-heading">
@@ -288,13 +344,20 @@ export function DashboardView({
                 </div>
               </div>
 
+              {/* Interactive Donut Breakdown */}
+              <DonutChart
+                items={categoryBreakdown}
+                totalCents={cashFlow.totalExpenseCents}
+                onSelectCategory={onFilterByCategory}
+              />
+
               <div>
                 <h3
                   style={{
                     fontSize: '0.8125rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
-                    margin: '0 0 0.65rem 0',
+                    margin: '0.5rem 0 0.65rem 0',
                     color: 'var(--color-text-muted)',
                   }}
                 >
@@ -480,6 +543,116 @@ export function DashboardView({
           )}
         </section>
       </div>
+
+      {/* Recent Transactions Widget */}
+      {recentTransactions.length > 0 && (
+        <section className="card" aria-labelledby="recent-tx-heading">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+            }}
+          >
+            <div>
+              <h2 id="recent-tx-heading" style={{ margin: 0, fontSize: '1.125rem' }}>
+                Últimas Movimentações do Mês
+              </h2>
+              <p
+                style={{
+                  margin: '0.2rem 0 0 0',
+                  fontSize: '0.75rem',
+                  color: 'var(--color-text-muted)',
+                }}
+              >
+                Acompanhamento rápido dos últimos registros
+              </p>
+            </div>
+            {onNavigateToTransactions && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ minHeight: '36px', padding: '0.25rem 0.75rem', fontSize: '0.8125rem' }}
+                onClick={onNavigateToTransactions}
+              >
+                Ver todas as transações →
+              </button>
+            )}
+          </div>
+
+          <div className="recent-tx-list">
+            {recentTransactions.map((tx) => (
+              <button
+                type="button"
+                key={tx.id}
+                className="recent-tx-item"
+                onClick={() => onEditTransaction?.(tx)}
+                disabled={!onEditTransaction}
+                style={{ cursor: onEditTransaction ? 'pointer' : 'default' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                  <span
+                    className={`recent-tx-icon-badge ${tx.type === 'INCOME' ? 'text-income' : 'text-expense'}`}
+                    style={{
+                      background:
+                        tx.type === 'INCOME' ? 'var(--color-income-bg)' : 'var(--color-expense-bg)',
+                    }}
+                    aria-hidden="true"
+                  >
+                    {tx.type === 'INCOME' ? '↗' : '↘'}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {tx.description}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      <span>{formatCivilDatePtBr(tx.date)}</span>
+                      <span>•</span>
+                      <CategoryBadge
+                        name={tx.categoryName}
+                        color={tx.categoryColor}
+                        isArchived={tx.categoryIsArchived}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <span
+                    className={`tabular-nums ${tx.type === 'INCOME' ? 'text-income' : 'text-expense'}`}
+                    style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                  >
+                    {tx.type === 'INCOME' ? '+ ' : '- '}
+                    {formatCentsToBrl(tx.amountCents)}
+                  </span>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                    {tx.status === 'PAID' ? 'Pago' : 'Pendente'}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

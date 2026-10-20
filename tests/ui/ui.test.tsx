@@ -181,4 +181,103 @@ describe('UI Components & Multimodal Accessibility (T-7 to T-9, RNF-5, CA-23..CA
     // Verified 1 year default
     expect(screen.getByText(/Serão gerados lançamentos automáticos mensais/i)).toBeDefined();
   });
+
+  it('renders ConfirmModal and fires callbacks appropriately', async () => {
+    const { ConfirmModal } = await import('../../src/client/components/ConfirmModal.js');
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+
+    const { rerender } = render(
+      <ConfirmModal
+        isOpen={false}
+        title="Excluir item"
+        message="Deseja realmente excluir?"
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+
+    expect(screen.queryByText('Excluir item')).toBeNull();
+
+    rerender(
+      <ConfirmModal
+        isOpen={true}
+        title="Excluir item"
+        message="Deseja realmente excluir?"
+        confirmLabel="Sim, excluir"
+        cancelLabel="Voltar"
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+
+    expect(screen.getByText('Excluir item')).toBeDefined();
+    expect(screen.getByText('Deseja realmente excluir?')).toBeDefined();
+
+    const confirmBtn = screen.getByRole('button', { name: 'Sim, excluir' });
+    fireEvent.click(confirmBtn);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+
+    const cancelBtn = screen.getByRole('button', { name: 'Voltar' });
+    fireEvent.click(cancelBtn);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders DonutChart with accessible SVG slices and handles hover/click', async () => {
+    const { DonutChart } = await import('../../src/client/components/DonutChart.js');
+    const onSelectCategory = vi.fn();
+
+    render(
+      <DonutChart
+        totalCents={10000}
+        items={[
+          {
+            categoryId: 'cat-1',
+            categoryName: 'Alimentação',
+            categoryColor: '#10B981',
+            isArchived: false,
+            type: 'EXPENSE',
+            totalAmountCents: 6000,
+            sharePercentage: 60,
+          },
+          {
+            categoryId: 'cat-2',
+            categoryName: 'Transporte',
+            categoryColor: '#3B82F6',
+            isArchived: false,
+            type: 'EXPENSE',
+            totalAmountCents: 4000,
+            sharePercentage: 40,
+          },
+        ]}
+        onSelectCategory={onSelectCategory}
+      />,
+    );
+
+    expect(screen.getByText('Alimentação')).toBeDefined();
+    expect(screen.getByText('Transporte')).toBeDefined();
+    expect(screen.getByText('R$ 100,00')).toBeDefined();
+
+    const sliceBtn = screen.getByRole('button', { name: 'Alimentação' });
+    fireEvent.click(sliceBtn);
+    expect(onSelectCategory).toHaveBeenCalledWith('cat-1', 'EXPENSE');
+  });
+
+  it('renders DailyTrendChart with daily columns for current month', async () => {
+    const { DailyTrendChart } = await import('../../src/client/components/DailyTrendChart.js');
+
+    render(
+      <DailyTrendChart
+        month={10}
+        year={2026}
+        items={[
+          { day: 5, incomeCents: 50000, expenseCents: 12000 },
+          { day: 15, incomeCents: 0, expenseCents: 8500 },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Fluxo Diário do Mês')).toBeDefined();
+    expect(screen.getByLabelText(/Gráfico de barras diárias/i)).toBeDefined();
+  });
 });

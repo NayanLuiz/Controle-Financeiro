@@ -2,6 +2,8 @@ import type {
   BudgetProgressDto,
   BudgetsResponseDto,
   CategoryDto,
+  CopyPreviousBudgetsInput,
+  CopyPreviousBudgetsResponseDto,
   CreateCategoryInput,
   DashboardResponseDto,
   EntryType,
@@ -252,6 +254,35 @@ export const apiClient = {
     return requestJson<void>(`/api/budgets/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
+  },
+
+  copyPreviousBudgets(input: CopyPreviousBudgetsInput): Promise<CopyPreviousBudgetsResponseDto> {
+    return requestJson<CopyPreviousBudgetsResponseDto>('/api/budgets/copy-previous', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+
+  exportTransactionsCsvUrl(
+    params: Partial<ListTransactionsQuery> & { month: number; year: number },
+  ): string {
+    const query = new URLSearchParams({
+      month: String(params.month),
+      year: String(params.year),
+    });
+    if (params.type) {
+      query.set('type', params.type);
+    }
+    if (params.status) {
+      query.set('status', params.status);
+    }
+    if (params.categoryId) {
+      query.set('categoryId', params.categoryId);
+    }
+    if (params.search && params.search.trim().length > 0) {
+      query.set('search', params.search.trim());
+    }
+    return `/api/transactions/export?${query.toString()}`;
   },
 
   getDashboard(period: PeriodQuery): Promise<DashboardResponseDto> {

@@ -6,16 +6,25 @@ import {
 } from '../../shared/contracts/index.js';
 import { ApiRequestError, apiClient } from '../api/client.js';
 import { CategoryBadge } from '../components/CategoryBadge.js';
+import { ConfirmModal } from '../components/ConfirmModal.js';
+import { useToast } from '../components/Toast.js';
 
 const COLOR_SWATCHES = [
   '#EA580C',
-  '#2563EB',
-  '#7C3AED',
-  '#E11D48',
   '#D97706',
   '#059669',
   '#0D9488',
   '#0284C7',
+  '#2563EB',
+  '#4F46E5',
+  '#7C3AED',
+  '#9333EA',
+  '#C026D3',
+  '#DB2777',
+  '#E11D48',
+  '#DC2626',
+  '#16A34A',
+  '#0891B2',
   '#475569',
 ] as const;
 
@@ -25,6 +34,7 @@ export interface CategoriesViewProps {
 }
 
 export function CategoriesView({ categories, onCategoriesChanged }: CategoriesViewProps) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<EntryType>('EXPENSE');
   const [showArchived, setShowArchived] = useState<boolean>(true);
   const [editingCategory, setEditingCategory] = useState<CategoryDto | null>(null);
@@ -33,6 +43,7 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
   const [color, setColor] = useState<string>(COLOR_SWATCHES[0]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [conflictCategory, setConflictCategory] = useState<CategoryDto | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<CategoryDto | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const visibleCategories = categories.filter(
@@ -73,16 +84,20 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
           type: editingCategory.hasLinkedRecords ? undefined : parsed.data.type,
           color: parsed.data.color,
         });
+        toast.success(`Categoria "${parsed.data.name}" atualizada com sucesso!`);
       } else {
         await apiClient.createCategory(parsed.data);
+        toast.success(`Categoria "${parsed.data.name}" criada com sucesso!`);
       }
       resetForm();
       onCategoriesChanged();
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setErrorMessage(err.message);
+        toast.error(err.message);
       } else {
         setErrorMessage('Erro ao salvar a categoria.');
+        toast.error('Erro ao salvar a categoria.');
       }
     } finally {
       setIsSubmitting(false);
@@ -94,10 +109,16 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
     try {
       await apiClient.updateCategory(cat.id, { isArchived: !cat.isArchived });
       setConflictCategory(null);
+      toast.success(
+        cat.isArchived
+          ? `Categoria "${cat.name}" reativada com sucesso!`
+          : `Categoria "${cat.name}" arquivada.`,
+      );
       onCategoriesChanged();
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setErrorMessage(err.message);
+        toast.error(err.message);
       }
     }
   };
@@ -106,22 +127,55 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
     setErrorMessage(null);
     try {
       await apiClient.deleteCategory(cat.id);
+      setDeletingCategory(null);
+      toast.success(`Categoria "${cat.name}" excluída.`);
       onCategoriesChanged();
     } catch (err) {
       if (err instanceof ApiRequestError && err.status === 409) {
         setConflictCategory(cat);
       } else if (err instanceof ApiRequestError) {
         setErrorMessage(err.message);
+        toast.error(err.message);
       }
     }
   };
 
+  const expenseCount = categories.filter(
+    (c) => c.type === 'EXPENSE' && (showArchived || !c.isArchived),
+  ).length;
+  const incomeCount = categories.filter(
+    (c) => c.type === 'INCOME' && (showArchived || !c.isArchived),
+  ).length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <section className="card" aria-labelledby="cat-form-heading">
-        <h2 id="cat-form-heading" style={{ marginTop: 0, fontSize: '1.125rem' }}>
-          {editingCategory ? `Editar Categoria: ${editingCategory.name}` : 'Nova Categoria'}
-        </h2>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '0.75rem',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+          }}
+        >
+          <h2 id="cat-form-heading" style={{ margin: 0, fontSize: '1.125rem' }}>
+            {editingCategory ? `Editar Categoria: ${editingCategory.name}` : 'Nova Categoria'}
+          </h2>
+          <div className="cat-preview-container">
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--color-text-muted)',
+                marginRight: '0.5rem',
+              }}
+            >
+              Pré-visualização:
+            </span>
+            <CategoryBadge name={name.trim() || 'Exemplo'} color={color} />
+          </div>
+        </div>
 
         {errorMessage && (
           <div className="alert-banner" role="alert" style={{ marginBottom: '1rem' }}>
@@ -255,7 +309,7 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
             marginBottom: '1rem',
           }}
         >
-          <div className="segmented-control" style={{ width: '280px' }}>
+          <div className="segmented-control" style={{ width: '320px' }}>
             <button
               type="button"
               className="segmented-btn"
@@ -265,7 +319,10 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
                 if (!editingCategory) setType('EXPENSE');
               }}
             >
-              Despesas
+              Despesas{' '}
+              <span className="tabular-nums" style={{ opacity: 0.8, fontSize: '0.8rem' }}>
+                ({expenseCount})
+              </span>
             </button>
             <button
               type="button"
@@ -276,7 +333,10 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
                 if (!editingCategory) setType('INCOME');
               }}
             >
-              Receitas
+              Receitas{' '}
+              <span className="tabular-nums" style={{ opacity: 0.8, fontSize: '0.8rem' }}>
+                ({incomeCount})
+              </span>
             </button>
           </div>
 
@@ -328,7 +388,13 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
                   type="button"
                   className="btn btn-danger"
                   style={{ minHeight: '36px', padding: '0.25rem 0.6rem' }}
-                  onClick={() => void handleDelete(cat)}
+                  onClick={() => {
+                    if (cat.hasLinkedRecords) {
+                      setConflictCategory(cat);
+                    } else {
+                      setDeletingCategory(cat);
+                    }
+                  }}
                 >
                   Excluir
                 </button>
@@ -337,6 +403,19 @@ export function CategoriesView({ categories, onCategoriesChanged }: CategoriesVi
           ))}
         </ul>
       </section>
+
+      {deletingCategory && (
+        <ConfirmModal
+          isOpen={true}
+          title="Excluir Categoria"
+          message={`Tem certeza que deseja excluir permanentemente a categoria "${deletingCategory.name}"? Esta ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          isDestructive={true}
+          onConfirm={() => void handleDelete(deletingCategory)}
+          onCancel={() => setDeletingCategory(null)}
+        />
+      )}
     </div>
   );
 }

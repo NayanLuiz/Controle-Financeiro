@@ -3,8 +3,10 @@ import type { FastifyInstance } from 'fastify';
 import {
   type BudgetProgressDto,
   type BudgetsResponseDto,
+  type CopyPreviousBudgetsResponseDto,
   type EntryType,
   type UnbudgetedCategoryDto,
+  copyPreviousBudgetsSchema,
   periodQuerySchema,
   upsertBudgetSchema,
 } from '../../../shared/contracts/index.js';
@@ -232,5 +234,57 @@ export function registerBudgetsModule(app: FastifyInstance, db: DbAdapter): void
       });
     }
     return reply.code(204).send();
+  });
+
+  app.post('/api/budgets/copy-previous', async (request, reply) => {
+    const userId = getRequestUserId(request);
+    const input = copyPreviousBudgetsSchema.parse(request.body ?? {});
+    const prevMonth = input.month === 1 ? 12 : input.month - 1;
+    const prevYear = input.month === 1 ? input.year - 1 : input.year;
+
+    const previousBudgets = await db.query<{
+      category_id: string;
+      limit_cents: number;
+    }>(
+      `SELECT b.category_id, b.limit_cents
+       FROM budgets b
+       INNER JOIN categories c ON c.id = b.category_id
+       WHERE b.user_id = ? AND b.year = ? AND b.month = ? AND c.is_archived = 0 AND c.type = 'EXPENSE'`,
+      [userId, prevYear, prevMonth],
+    );
+
+    let copiedCount = 0;
+    const now = new Date().toISOString();
+
+    for (const prev of previousBudgets) {
+      const existing = await db.queryOne<{ id: string }>(
+        'SELECT id FROM budgets WHERE user_id = ? AND category_id = ? AND year = ? AND month = ?',
+        [userId, prev.category_id, input.year, input.month],
+      );
+      if (!existing) {
+        await db.run(
+          `INSERT INTO budgets (id, user_id, category_id, year, month, limit_cents, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            randomUUID(),
+            userId,
+            prev.category_id,
+            input.year,
+            input.month,
+            Number(prev.limit_cents),
+            now,
+            now,
+          ],
+        );
+        copiedCount++;
+      }
+    }
+
+    const items = await getBudgetProgressItems(db, userId, input.year, input.month);
+    const response: CopyPreviousBudgetsResponseDto = {
+      copiedCount,
+      items,
+    };
+    return reply.code(200).send(response);
   });
 }

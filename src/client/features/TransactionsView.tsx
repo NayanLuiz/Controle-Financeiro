@@ -37,6 +37,7 @@ export function TransactionsView({
 }: TransactionsViewProps) {
   const toast = useToast();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const latestRequestRef = useRef(0);
   const [filterType, setFilterType] = useState<EntryType | ''>(initialType);
   const [filterStatus, setFilterStatus] = useState<TransactionStatus | ''>('');
   const [filterCategoryId, setFilterCategoryId] = useState<string>(initialCategoryId);
@@ -56,8 +57,10 @@ export function TransactionsView({
   }, [initialCategoryId, initialType]);
 
   const loadTransactions = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     setIsLoading(true);
     setErrorMessage(null);
+    setResult(null);
     try {
       const data = await apiClient.listTransactions({
         month,
@@ -69,11 +72,13 @@ export function TransactionsView({
         page,
         pageSize,
       });
-      setResult(data);
+      if (requestId === latestRequestRef.current) setResult(data);
     } catch {
-      setErrorMessage('Não foi possível carregar as transações do período.');
+      if (requestId === latestRequestRef.current) {
+        setErrorMessage('Não foi possível carregar as transações do período.');
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
   }, [month, year, filterType, filterStatus, filterCategoryId, searchTerm, page, pageSize]);
 
@@ -94,6 +99,9 @@ export function TransactionsView({
 
   useEffect(() => {
     void loadTransactions();
+    return () => {
+      latestRequestRef.current += 1;
+    };
   }, [loadTransactions]);
 
   const handleToggleStatus = async (tx: TransactionDto) => {
@@ -169,15 +177,8 @@ export function TransactionsView({
   const periodLabel = formatMonthYearLabel(month, year);
   const pendingSummary = result?.pendingSummary;
 
-  let filterIncomeCents = 0;
-  let filterExpenseCents = 0;
-  for (const item of items) {
-    if (item.type === 'INCOME') {
-      filterIncomeCents += item.amountCents;
-    } else {
-      filterExpenseCents += item.amountCents;
-    }
-  }
+  const filterIncomeCents = result?.filteredSummary.incomeCents ?? 0;
+  const filterExpenseCents = result?.filteredSummary.expenseCents ?? 0;
   const filterNetCents = filterIncomeCents - filterExpenseCents;
 
   return (
@@ -350,7 +351,7 @@ export function TransactionsView({
         {items.length > 0 && (
           <div className="filter-summary-bar">
             <span>
-              Exibindo: <strong>{meta.totalItems}</strong>{' '}
+              Filtradas: <strong>{meta.totalItems}</strong>{' '}
               {meta.totalItems === 1 ? 'transação' : 'transações'}
             </span>
             <span>•</span>

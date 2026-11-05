@@ -492,6 +492,16 @@ describe('Personal Finance API Integration (CA-1 to CA-25)', () => {
         currentPage: 1,
         pageSize: 10,
       });
+      expect(page1.filteredSummary).toEqual({ incomeCents: 0, expenseCents: 120000 });
+
+      const page2Res = await app.inject({
+        method: 'GET',
+        url: `/api/transactions?month=10&year=2026&type=EXPENSE&categoryId=${alimentacao.id}&pageSize=10&page=2`,
+        headers: { cookie: authCookie },
+      });
+      const page2 = page2Res.json() as PaginatedTransactionsDto;
+      expect(page2.items).toHaveLength(5);
+      expect(page2.filteredSummary).toEqual(page1.filteredSummary);
 
       const emptyRes = await app.inject({
         method: 'GET',
@@ -503,6 +513,7 @@ describe('Personal Finance API Integration (CA-1 to CA-25)', () => {
       expect(emptyBody.items).toHaveLength(0);
       expect(emptyBody.meta.totalItems).toBe(0);
       expect(emptyBody.meta.totalPages).toBe(0);
+      expect(emptyBody.filteredSummary).toEqual({ incomeCents: 0, expenseCents: 0 });
     });
   });
 
@@ -1080,6 +1091,37 @@ describe('Personal Finance API Integration (CA-1 to CA-25)', () => {
       expect(res.body).toContain('Data;Tipo;Categoria;Descrição;Status;Valor (R$)');
       expect(res.body).toContain('Padaria Express');
       expect(res.body).toContain('45,00');
+    });
+
+    it('exports descriptions beginning with spreadsheet formula markers as text', async () => {
+      const category = (await getCategories()).find((item) => item.type === 'EXPENSE');
+      expect(category).toBeDefined();
+      for (const description of ['=1+1', '  @SUM(1;2)', '+cmd', '-2+3']) {
+        const created = await app.inject({
+          method: 'POST',
+          url: '/api/transactions',
+          headers: { cookie: authCookie },
+          payload: {
+            type: 'EXPENSE',
+            amountCents: 100,
+            date: '2026-10-15',
+            description,
+            categoryId: category?.id,
+          },
+        });
+        expect(created.statusCode).toBe(201);
+      }
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/transactions/export?month=10&year=2026',
+        headers: { cookie: authCookie },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toContain(";'=1+1;");
+      expect(res.body).toContain(';"\'@SUM(1;2)";');
+      expect(res.body).toContain(";'+cmd;");
+      expect(res.body).toContain(";'-2+3;");
     });
 
     it('copies active budgets from previous month to current month', async () => {

@@ -130,6 +130,13 @@ export function DashboardView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="dashboard-intro">
+        <div>
+          <span className="section-eyebrow">RESUMO DO PERÍODO</span>
+          <h2>Seu mês em números</h2>
+          <p>Uma visão clara do que entrou, saiu e ficou disponível em {periodLabel}.</p>
+        </div>
+      </div>
       <section aria-label={`Resumo financeiro de ${periodLabel}`} className="summary-grid">
         <article className="card kpi-card">
           <div className="kpi-header">
@@ -163,9 +170,9 @@ export function DashboardView({
           <p className="kpi-subtext">Total de saídas no período</p>
         </article>
 
-        <article className="card kpi-card">
+        <article className="card kpi-card kpi-card-balance">
           <div className="kpi-header">
-            <h2 className="kpi-title">Saldo Líquido</h2>
+            <h2 className="kpi-title">Saldo do mês</h2>
             <span className="kpi-icon-badge kpi-icon-balance" aria-hidden="true">
               <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />

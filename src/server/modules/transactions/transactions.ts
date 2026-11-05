@@ -98,12 +98,19 @@ export function registerTransactionsModule(app: FastifyInstance, db: DbAdapter):
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
-    const countRow = await db.queryOne<{ total: number | bigint }>(
-      `SELECT COUNT(*) AS total FROM transactions t ${whereClause}`,
+    const summaryRow = await db.queryOne<{
+      total: number | bigint;
+      income_cents: number | bigint;
+      expense_cents: number | bigint;
+    }>(
+      `SELECT COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN t.type = 'INCOME' THEN t.amount_cents ELSE 0 END), 0) AS income_cents,
+        COALESCE(SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount_cents ELSE 0 END), 0) AS expense_cents
+      FROM transactions t ${whereClause}`,
       params,
     );
 
-    const totalItems = Number(countRow?.total ?? 0);
+    const totalItems = Number(summaryRow?.total ?? 0);
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / query.pageSize);
     const offset = (query.page - 1) * query.pageSize;
 
@@ -161,6 +168,10 @@ export function registerTransactionsModule(app: FastifyInstance, db: DbAdapter):
         currentPage: query.page,
         pageSize: query.pageSize,
       },
+      filteredSummary: {
+        incomeCents: Number(summaryRow?.income_cents ?? 0),
+        expenseCents: Number(summaryRow?.expense_cents ?? 0),
+      },
       pendingSummary,
     };
 
@@ -213,11 +224,13 @@ export function registerTransactionsModule(app: FastifyInstance, db: DbAdapter):
       params,
     );
 
-    const escapeCsv = (str: string): string => {
-      if (str.includes(';') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`;
+    const escapeCsv = (value: string): string => {
+      // Spreadsheet apps may evaluate imported cells that begin with a formula marker.
+      const safeValue = /^\s*[=+@-]/u.test(value) ? `'${value}` : value;
+      if (/[;"\r\n]/u.test(safeValue)) {
+        return `"${safeValue.replace(/"/g, '""')}"`;
       }
-      return str;
+      return safeValue;
     };
 
     const lines: string[] = ['Data;Tipo;Categoria;Descrição;Status;Valor (R$)'];

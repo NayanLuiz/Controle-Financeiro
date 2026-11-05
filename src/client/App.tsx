@@ -59,7 +59,11 @@ export function App() {
   const [txFilterCategory, setTxFilterCategory] = useState<string>('');
   const [txFilterType, setTxFilterType] = useState<EntryType | ''>('');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(false);
+  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const savedTheme = window.localStorage.getItem('finpulse-theme');
+    return savedTheme === 'dark';
+  });
 
   const bumpRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -107,6 +111,7 @@ export function App() {
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.classList.toggle('dark', isDarkTheme);
+      window.localStorage.setItem('finpulse-theme', isDarkTheme ? 'dark' : 'light');
     }
   }, [isDarkTheme]);
 
@@ -127,7 +132,14 @@ export function App() {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const tagName = target?.tagName?.toLowerCase();
-      if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+      if (
+        isTxModalOpen ||
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select' ||
+        tagName === 'button' ||
+        target?.isContentEditable
+      ) {
         return;
       }
       if ((event.key === 'n' || event.key === 'N') && !event.ctrlKey && !event.metaKey) {
@@ -153,7 +165,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [authStatus]);
+  }, [authStatus, isTxModalOpen]);
 
   const handleOpenNewTransaction = () => {
     setEditingTx(null);
@@ -209,7 +221,7 @@ export function App() {
     <ToastProvider>
       <div className="app-shell">
         <aside className="app-sidebar" aria-label="Menu principal">
-          <div className="brand-header">
+          <div className="brand-header sidebar-brand">
             <div className="brand-mark" aria-hidden="true">
               <svg
                 width="22"
@@ -236,12 +248,11 @@ export function App() {
               >
                 FinPulse
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                Finanças Pessoais
-              </div>
+              <div className="brand-caption">Sua vida financeira</div>
             </div>
           </div>
 
+          <div className="sidebar-section-label">ESPAÇO DE TRABALHO</div>
           <button
             type="button"
             className="btn btn-primary"
@@ -359,8 +370,9 @@ export function App() {
                 className="btn btn-secondary"
                 style={{ minHeight: '36px', padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
                 onClick={() => setIsDarkTheme((prev) => !prev)}
+                aria-label={isDarkTheme ? 'Ativar tema claro' : 'Ativar tema escuro'}
               >
-                {isDarkTheme ? '☀️ Claro' : '🌙 Escuro'}
+                {isDarkTheme ? 'Tema claro' : 'Tema escuro'}
               </button>
               <button
                 type="button"
@@ -389,29 +401,34 @@ export function App() {
         <div className="app-main">
           <header className="app-header">
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>
-                {viewTitle[activeView]}
-              </h1>
-              <p
-                style={{
-                  margin: '0.1rem 0 0 0',
-                  fontSize: '0.8125rem',
-                  color: 'var(--color-text-secondary)',
-                }}
-              >
-                {viewSubtitle[activeView]}
-              </p>
+              <div className="header-eyebrow">
+                FINPULSE / {activeView === 'dashboard' ? 'PAINEL' : 'ORGANIZAÇÃO'}
+              </div>
+              <h1 className="page-title">{viewTitle[activeView]}</h1>
+              <p className="page-subtitle">{viewSubtitle[activeView]}</p>
             </div>
 
-            <div
-              style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}
-            >
+            <div className="header-actions">
               {activeView !== 'categories' && (
                 <MonthYearPicker month={period.month} year={period.year} onChange={setPeriod} />
               )}
 
-              <button type="button" className="btn btn-primary" onClick={handleOpenNewTransaction}>
-                + Nova Transação
+              <button
+                type="button"
+                className="btn btn-secondary mobile-theme-button"
+                onClick={() => setIsDarkTheme((prev) => !prev)}
+                aria-label={isDarkTheme ? 'Ativar tema claro' : 'Ativar tema escuro'}
+                title={isDarkTheme ? 'Ativar tema claro' : 'Ativar tema escuro'}
+              >
+                <span aria-hidden="true">{isDarkTheme ? '☀' : '☾'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary header-new-button"
+                onClick={handleOpenNewTransaction}
+              >
+                <span aria-hidden="true">+</span> Nova transação
               </button>
             </div>
           </header>
@@ -482,16 +499,27 @@ export function App() {
             aria-current={activeView === 'dashboard' ? 'page' : undefined}
             onClick={() => setActiveView('dashboard')}
           >
-            <span>📊</span>
+            <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <rect width="7" height="9" x="3" y="3" rx="1" />
+              <rect width="7" height="5" x="14" y="3" rx="1" />
+              <rect width="7" height="9" x="14" y="12" rx="1" />
+              <rect width="7" height="5" x="3" y="16" rx="1" />
+            </svg>
             <span>Início</span>
           </button>
           <button
             type="button"
             className="mobile-nav-btn"
             aria-current={activeView === 'transactions' ? 'page' : undefined}
-            onClick={() => setActiveView('transactions')}
+            onClick={() => {
+              setTxFilterCategory('');
+              setTxFilterType('');
+              setActiveView('transactions');
+            }}
           >
-            <span>💳</span>
+            <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
             <span>Transações</span>
           </button>
           <button
@@ -509,7 +537,11 @@ export function App() {
             aria-current={activeView === 'budgets' ? 'page' : undefined}
             onClick={() => setActiveView('budgets')}
           >
-            <span>🎯</span>
+            <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="6" />
+              <circle cx="12" cy="12" r="2" />
+            </svg>
             <span>Metas</span>
           </button>
           <button
@@ -518,7 +550,10 @@ export function App() {
             aria-current={activeView === 'categories' ? 'page' : undefined}
             onClick={() => setActiveView('categories')}
           >
-            <span>🏷️</span>
+            <svg className="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+              <path d="M7 7h.01" />
+            </svg>
             <span>Categorias</span>
           </button>
         </nav>

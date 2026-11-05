@@ -183,6 +183,11 @@ export interface PeriodPendingSummaryDto {
   readonly pendingIncomeCount: number;
 }
 
+export interface FilteredTransactionSummaryDto {
+  readonly incomeCents: number;
+  readonly expenseCents: number;
+}
+
 export interface PaginationMetaDto {
   readonly totalItems: number;
   readonly totalPages: number;
@@ -193,6 +198,7 @@ export interface PaginationMetaDto {
 export interface PaginatedTransactionsDto {
   readonly items: readonly TransactionDto[];
   readonly meta: PaginationMetaDto;
+  readonly filteredSummary: FilteredTransactionSummaryDto;
   readonly pendingSummary?: PeriodPendingSummaryDto;
 }
 

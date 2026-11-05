@@ -49,6 +49,18 @@ export function TransactionModal({
   const [isSaving, setIsSaving] = useState(false);
 
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [isOpen]);
 
   const availableCategories = useMemo(() => {
     const list = categories.filter(
@@ -128,6 +140,20 @@ export function TransactionModal({
       if (event.key === 'Escape') {
         event.preventDefault();
         onClose();
+      } else if (event.key === 'Tab') {
+        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)',
+        );
+        if (!focusable?.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -203,7 +229,13 @@ export function TransactionModal({
 
   return (
     <div className="modal-backdrop">
-      <dialog open className="modal-panel" aria-modal="true" aria-labelledby="tx-modal-title">
+      <dialog
+        ref={dialogRef}
+        open
+        className="modal-panel"
+        aria-modal="true"
+        aria-labelledby="tx-modal-title"
+      >
         <div
           style={{
             display: 'flex',

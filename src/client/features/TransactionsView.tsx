@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CategoryDto,
   EntryType,
@@ -6,7 +6,7 @@ import type {
   TransactionDto,
   TransactionStatus,
 } from '../../shared/contracts/index.js';
-import { formatCivilDatePtBr } from '../../shared/domain/civil-date.js';
+import { formatCivilDatePtBr, getTodayCivilDate } from '../../shared/domain/civil-date.js';
 import { formatCentsToBrl } from '../../shared/domain/money.js';
 import { ApiRequestError, apiClient } from '../api/client.js';
 import { CategoryBadge } from '../components/CategoryBadge.js';
@@ -43,12 +43,13 @@ export function TransactionsView({
   const [filterCategoryId, setFilterCategoryId] = useState<string>(initialCategoryId);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(20);
+  const [pageSize] = useState<number>(20);
   const [result, setResult] = useState<PaginatedTransactionsDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deletingRecurringTx, setDeletingRecurringTx] = useState<TransactionDto | null>(null);
   const [deletingSingleTx, setDeletingSingleTx] = useState<TransactionDto | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     setFilterCategoryId(initialCategoryId);
@@ -106,6 +107,7 @@ export function TransactionsView({
 
   const handleToggleStatus = async (tx: TransactionDto) => {
     const nextStatus: TransactionStatus = tx.status === 'PAID' ? 'PENDING' : 'PAID';
+    setOpenMenuId(null);
     setResult((prev) => {
       if (!prev) return prev;
       return {
@@ -118,7 +120,9 @@ export function TransactionsView({
     try {
       await apiClient.updateTransactionStatus(tx.id, nextStatus);
       toast.success(
-        `Transação marcada como ${nextStatus === 'PAID' ? (tx.type === 'INCOME' ? 'recebida' : 'paga') : 'pendente'}.`,
+        `Transação marcada como ${
+          nextStatus === 'PAID' ? (tx.type === 'INCOME' ? 'recebida' : 'paga') : 'pendente'
+        }.`,
       );
       onDataChanged();
       void loadTransactions();
@@ -130,6 +134,7 @@ export function TransactionsView({
   };
 
   const handleDelete = async (tx: TransactionDto, scope: 'single' | 'following' = 'single') => {
+    setOpenMenuId(null);
     try {
       await apiClient.deleteTransaction(tx.id, scope);
       setDeletingRecurringTx(null);
@@ -175,238 +180,291 @@ export function TransactionsView({
     pageSize,
   };
   const periodLabel = formatMonthYearLabel(month, year);
-  const pendingSummary = result?.pendingSummary;
 
-  const filterIncomeCents = result?.filteredSummary.incomeCents ?? 0;
   const filterExpenseCents = result?.filteredSummary.expenseCents ?? 0;
-  const filterNetCents = filterIncomeCents - filterExpenseCents;
+
+  // Stitch: Agrupamento Cronológico por Data
+  const groupedTransactions = useMemo(() => {
+    const today = getTodayCivilDate();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = getTodayCivilDate(yesterdayDate);
+
+    const groups: { label: string; date: string; items: TransactionDto[] }[] = [];
+    const dateMap = new Map<string, TransactionDto[]>();
+
+    for (const tx of items) {
+      const list = dateMap.get(tx.date) ?? [];
+      list.push(tx);
+      dateMap.set(tx.date, list);
+    }
+
+    for (const [date, txs] of dateMap.entries()) {
+      let label = formatCivilDatePtBr(date);
+      if (date === today) {
+        label = `Hoje, ${formatCivilDatePtBr(date)}`;
+      } else if (date === yesterday) {
+        label = `Ontem, ${formatCivilDatePtBr(date)}`;
+      }
+      groups.push({ label, date, items: txs });
+    }
+
+    return groups;
+  }, [items]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <section className="card" aria-label="Filtros de transações">
-        {/* Quick Filter Pills */}
-        <div
-          className="filter-pills-bar"
-          style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}
-        >
-          <button
-            type="button"
-            className={`pill-btn ${filterType === '' && filterStatus === '' ? 'pill-active' : ''}`}
-            onClick={() => {
-              setFilterType('');
-              setFilterStatus('');
-              setPage(1);
+      {/* Bloco de Busca & Ação CSV do Stitch */}
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+          <span
+            className="material-symbols-outlined"
+            style={{
+              position: 'absolute',
+              left: '12px',
+              color: 'var(--color-outline)',
+              fontSize: '20px',
+              pointerEvents: 'none',
             }}
           >
-            Todas
-          </button>
-          <button
-            type="button"
-            className={`pill-btn ${filterType === 'EXPENSE' ? 'pill-active' : ''}`}
-            onClick={() => {
-              setFilterType('EXPENSE');
+            search
+          </span>
+          <input
+            ref={searchInputRef}
+            id="search-input"
+            type="search"
+            className="input-control"
+            style={{ width: '100%', paddingLeft: '2.5rem', height: '46px', borderRadius: '14px' }}
+            placeholder="Buscar transação por nome... (/)"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
               setPage(1);
             }}
-          >
-            Despesas
-          </button>
-          <button
-            type="button"
-            className={`pill-btn ${filterType === 'INCOME' ? 'pill-active' : ''}`}
-            onClick={() => {
-              setFilterType('INCOME');
-              setPage(1);
-            }}
-          >
-            Receitas
-          </button>
-          <button
-            type="button"
-            className={`pill-btn ${filterStatus === 'PENDING' ? 'pill-active' : ''}`}
-            onClick={() => {
-              setFilterStatus('PENDING');
-              setPage(1);
-            }}
-          >
-            Pendentes
-          </button>
+          />
         </div>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ height: '46px', padding: '0 1rem', borderRadius: '14px', flexShrink: 0 }}
+          onClick={handleExportCsv}
+          title="Exportar extrato em formato CSV"
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '18px', color: 'var(--color-primary)' }}
+          >
+            download
+          </span>
+          <span>CSV</span>
+        </button>
+      </div>
 
+      {/* Barra de Filtros Rápidos (Chips Roláveis do Stitch) */}
+      <div className="stitch-filter-chips">
+        {/* Filtro Tipo */}
+        <button
+          type="button"
+          className={`stitch-chip ${filterType === '' && filterStatus === '' ? 'active' : ''}`}
+          onClick={() => {
+            setFilterType('');
+            setFilterStatus('');
+            setFilterCategoryId('');
+            setPage(1);
+          }}
+        >
+          <span>Todas</span>
+        </button>
+        <button
+          type="button"
+          className={`stitch-chip ${filterType === 'INCOME' ? 'active' : ''}`}
+          onClick={() => {
+            setFilterType('INCOME');
+            setPage(1);
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '16px', color: 'var(--color-secondary)' }}
+          >
+            trending_up
+          </span>
+          <span>Receitas (+)</span>
+        </button>
+        <button
+          type="button"
+          className={`stitch-chip ${filterType === 'EXPENSE' ? 'active' : ''}`}
+          onClick={() => {
+            setFilterType('EXPENSE');
+            setPage(1);
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '16px', color: 'var(--color-tertiary-container)' }}
+          >
+            trending_down
+          </span>
+          <span>Despesas (-)</span>
+        </button>
+
+        <div style={{ width: '1px', height: '18px', background: 'var(--color-outline-variant)' }} />
+
+        {/* Filtro Status */}
+        <button
+          type="button"
+          className={`stitch-chip ${filterStatus === 'PAID' ? 'active' : ''}`}
+          onClick={() => {
+            setFilterStatus('PAID');
+            setPage(1);
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '16px', color: 'var(--color-secondary)' }}
+          >
+            check_circle
+          </span>
+          <span>Concluídos</span>
+        </button>
+        <button
+          type="button"
+          className={`stitch-chip ${filterStatus === 'PENDING' ? 'active' : ''}`}
+          onClick={() => {
+            setFilterStatus('PENDING');
+            setPage(1);
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '16px', color: 'var(--color-tertiary-container)' }}
+          >
+            schedule
+          </span>
+          <span>Pendentes</span>
+        </button>
+
+        {/* Categoria Select */}
+        <div style={{ position: 'relative' }}>
+          <select
+            className="stitch-chip"
+            style={{ appearance: 'none', paddingRight: '1.75rem', cursor: 'pointer' }}
+            value={filterCategoryId}
+            onChange={(e) => {
+              setFilterCategoryId(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Todas as Categorias</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+          <span
+            className="material-symbols-outlined"
+            style={{
+              position: 'absolute',
+              right: '6px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '14px',
+              pointerEvents: 'none',
+              color: 'var(--color-on-surface-variant)',
+            }}
+          >
+            expand_more
+          </span>
+        </div>
+      </div>
+
+      {/* Resumo Operacional do Filtro (Stitch) */}
+      <section className="stitch-card" style={{ padding: '1rem' }} aria-label="Resumo do Extrato">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.75rem',
+            color: 'var(--color-text-muted)',
+            fontWeight: 600,
+          }}
+        >
+          <span>Fluxo Líquido Filtrado</span>
+          <span>{periodLabel}</span>
+        </div>
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
             gap: '0.75rem',
-            alignItems: 'end',
+            marginTop: '0.5rem',
           }}
         >
-          <div className="field-group">
-            <label htmlFor="filter-type-select" className="field-label">
-              Tipo
-            </label>
-            <select
-              id="filter-type-select"
-              className="select-control"
-              value={filterType}
-              onChange={(event) => {
-                setFilterType(event.target.value as EntryType | '');
-                setPage(1);
+          <div className="stitch-subcard-low">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                fontSize: '0.75rem',
+                color: 'var(--color-text-secondary)',
               }}
             >
-              <option value="">Todos os tipos</option>
-              <option value="EXPENSE">Despesas</option>
-              <option value="INCOME">Receitas</option>
-            </select>
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="filter-status-select" className="field-label">
-              Status de pagamento
-            </label>
-            <select
-              id="filter-status-select"
-              className="select-control"
-              value={filterStatus}
-              onChange={(event) => {
-                setFilterStatus(event.target.value as TransactionStatus | '');
-                setPage(1);
-              }}
-            >
-              <option value="">Todos os status</option>
-              <option value="PAID">Pagos / Recebidos</option>
-              <option value="PENDING">Pendentes</option>
-            </select>
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="filter-category-select" className="field-label">
-              Categoria
-            </label>
-            <select
-              id="filter-category-select"
-              className="select-control"
-              value={filterCategoryId}
-              onChange={(event) => {
-                setFilterCategoryId(event.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">Todas as categorias</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                  {cat.isArchived ? ' (Arquivada)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="filter-search-input" className="field-label">
-              Buscar descrição <kbd className="kbd-inline">/</kbd>
-            </label>
-            <input
-              ref={searchInputRef}
-              id="filter-search-input"
-              type="search"
-              className="input-control"
-              placeholder="Ex.: Almoço... (Atalho: /)"
-              value={searchTerm}
-              onChange={(event) => {
-                setSearchTerm(event.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {hasActiveFilters && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  setFilterType('');
-                  setFilterStatus('');
-                  setFilterCategoryId('');
-                  setSearchTerm('');
-                  setPage(1);
-                }}
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '16px', color: 'var(--color-secondary)' }}
               >
-                Limpar filtros
-              </button>
-            )}
-
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleExportCsv}
-              title="Baixar extrato do período em formato CSV para Excel/Sheets"
+                check_circle
+              </span>
+              <span>Total Pago</span>
+            </div>
+            <div
+              className="tabular-nums"
+              style={{
+                fontSize: '1.15rem',
+                fontWeight: 800,
+                color: 'var(--color-on-surface)',
+                marginTop: '0.2rem',
+              }}
             >
-              📥 Exportar CSV
-            </button>
+              - {formatCentsToBrl(filterExpenseCents)}
+            </div>
+          </div>
+
+          <div className="stitch-subcard-low">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                fontSize: '0.75rem',
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '16px', color: 'var(--color-tertiary-container)' }}
+              >
+                pending
+              </span>
+              <span>Pendente</span>
+            </div>
+            <div
+              className="tabular-nums"
+              style={{
+                fontSize: '1.15rem',
+                fontWeight: 800,
+                color: 'var(--color-tertiary-container)',
+                marginTop: '0.2rem',
+              }}
+            >
+              {formatCentsToBrl(result?.pendingSummary?.pendingExpenseCents ?? 0)}
+            </div>
           </div>
         </div>
-
-        {/* Filter Summary Metrics */}
-        {items.length > 0 && (
-          <div className="filter-summary-bar">
-            <span>
-              Filtradas: <strong>{meta.totalItems}</strong>{' '}
-              {meta.totalItems === 1 ? 'transação' : 'transações'}
-            </span>
-            <span>•</span>
-            <span className="tabular-nums" style={{ color: 'var(--color-income-text)' }}>
-              Entradas: <strong>+ {formatCentsToBrl(filterIncomeCents)}</strong>
-            </span>
-            <span>•</span>
-            <span className="tabular-nums" style={{ color: 'var(--color-expense-text)' }}>
-              Saídas: <strong>- {formatCentsToBrl(filterExpenseCents)}</strong>
-            </span>
-            <span>•</span>
-            <span className="tabular-nums">
-              Saldo:{' '}
-              <strong
-                style={{
-                  color:
-                    filterNetCents >= 0 ? 'var(--color-income-text)' : 'var(--color-expense-text)',
-                }}
-              >
-                {formatCentsToBrl(filterNetCents)}
-              </strong>
-            </span>
-          </div>
-        )}
       </section>
-
-      {pendingSummary &&
-        (pendingSummary.pendingExpenseCount > 0 || pendingSummary.pendingIncomeCount > 0) && (
-          <section className="pending-kpi-bar" aria-label="Resumo de contas pendentes">
-            {pendingSummary.pendingExpenseCount > 0 && (
-              <div className="pending-kpi-item pending-kpi-expense">
-                <span className="pending-kpi-label">Despesas a Pagar:</span>
-                <strong className="tabular-nums">
-                  {formatCentsToBrl(pendingSummary.pendingExpenseCents)}
-                </strong>
-                <span className="pending-kpi-count tabular-nums">
-                  ({pendingSummary.pendingExpenseCount}{' '}
-                  {pendingSummary.pendingExpenseCount === 1 ? 'pendente' : 'pendentes'})
-                </span>
-              </div>
-            )}
-            {pendingSummary.pendingIncomeCount > 0 && (
-              <div className="pending-kpi-item pending-kpi-income">
-                <span className="pending-kpi-label">Receitas a Receber:</span>
-                <strong className="tabular-nums">
-                  {formatCentsToBrl(pendingSummary.pendingIncomeCents)}
-                </strong>
-                <span className="pending-kpi-count tabular-nums">
-                  ({pendingSummary.pendingIncomeCount}{' '}
-                  {pendingSummary.pendingIncomeCount === 1 ? 'pendente' : 'pendentes'})
-                </span>
-              </div>
-            )}
-          </section>
-        )}
 
       {errorMessage && (
         <div className="alert-banner" role="alert">
@@ -414,211 +472,360 @@ export function TransactionsView({
         </div>
       )}
 
-      <section className="card" aria-label="Lista de transações do período">
-        {isLoading && !result ? (
+      {/* Lista de Transações Agrupada por Data (Stitch) */}
+      {isLoading && !result ? (
+        <div className="stitch-card" style={{ padding: '2rem', textAlign: 'center' }}>
           <p aria-busy="true">Carregando transações...</p>
-        ) : items.length === 0 ? (
-          <div style={{ padding: '1.5rem 0', textAlign: 'center' }}>
-            {hasActiveFilters ? (
-              <>
-                <p style={{ color: 'var(--color-text-secondary)' }}>
-                  Nenhuma transação encontrada para os filtros selecionados.
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setFilterType('');
-                    setFilterStatus('');
-                    setFilterCategoryId('');
-                    setSearchTerm('');
-                    setPage(1);
-                  }}
-                >
-                  Limpar filtros
-                </button>
-              </>
-            ) : (
-              <>
-                <h2 style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>
-                  Nenhuma transação em {periodLabel}
-                </h2>
-                <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-                  Registre suas receitas e despesas para acompanhar seu saldo em tempo real.
-                </p>
-                <button type="button" className="btn btn-primary" onClick={onOpenNewTransaction}>
-                  + Nova Transação
-                </button>
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            <table className="tx-table">
-              <thead>
-                <tr>
-                  <th scope="col">Data</th>
-                  <th scope="col">Descrição</th>
-                  <th scope="col">Categoria</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Valor</th>
-                  <th scope="col">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((tx) => (
-                  <tr key={tx.id}>
-                    <td data-label="Data" className="tabular-nums">
-                      {formatCivilDatePtBr(tx.date)}
-                    </td>
-                    <td data-label="Descrição">
+        </div>
+      ) : items.length === 0 ? (
+        <div className="stitch-card" style={{ padding: '2rem', textAlign: 'center' }}>
+          <p style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-on-surface)' }}>
+            Nenhuma transação encontrada
+          </p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+            {hasActiveFilters
+              ? 'Tente ajustar os filtros ou a busca acima.'
+              : `Comece registrando sua primeira movimentação em ${periodLabel}.`}
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ marginTop: '0.5rem' }}
+            onClick={onOpenNewTransaction}
+          >
+            + Nova Transação
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {groupedTransactions.map((group) => (
+            <div key={group.date} className="stitch-tx-group">
+              <div className="stitch-tx-group-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: 'var(--color-primary-container)',
+                    }}
+                  />
+                  <span>{group.label}</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                  {group.items.length} {group.items.length === 1 ? 'transação' : 'transações'}
+                </span>
+              </div>
+
+              <div className="stitch-tx-card-list">
+                {group.items.map((tx) => (
+                  <div key={tx.id} className="stitch-tx-item">
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        minWidth: 0,
+                        flex: 1,
+                      }}
+                    >
+                      {/* Ícone de Categoria */}
                       <div
-                        style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap' }}
+                        className="stitch-cat-icon"
+                        style={{
+                          background: tx.categoryColor
+                            ? `${tx.categoryColor}20`
+                            : 'var(--color-surface-high)',
+                          color: tx.categoryColor || 'var(--color-primary)',
+                        }}
                       >
-                        <span>{tx.description}</span>
-                        {tx.isRecurring && (
-                          <span className="recurring-badge" title="Conta recorrente mensal">
-                            🔁 Recorrente
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                          {tx.type === 'INCOME' ? 'payments' : 'shopping_bag'}
+                        </span>
+                      </div>
+
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            color: 'var(--color-on-surface)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {tx.description}
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            marginTop: '0.15rem',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <CategoryBadge
+                            name={tx.categoryName}
+                            color={tx.categoryColor}
+                            isArchived={tx.categoryIsArchived}
+                          />
+                          <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                          {/* Badge Duplo Status */}
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              padding: '0.1rem 0.45rem',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              background:
+                                tx.status === 'PAID'
+                                  ? 'rgba(0, 108, 74, 0.12)'
+                                  : 'rgba(213, 32, 34, 0.12)',
+                              color:
+                                tx.status === 'PAID'
+                                  ? 'var(--color-secondary)'
+                                  : 'var(--color-tertiary-container)',
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{
+                                fontSize: '11px',
+                                fontVariationSettings:
+                                  tx.status === 'PAID' ? "'FILL' 1" : undefined,
+                              }}
+                            >
+                              {tx.status === 'PAID' ? 'check_circle' : 'schedule'}
+                            </span>
+                            <span>
+                              {tx.status === 'PAID'
+                                ? tx.type === 'INCOME'
+                                  ? 'Recebido'
+                                  : 'Pago'
+                                : 'Pendente'}
+                            </span>
                           </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Valor e Menu Contextual */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.65rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span
+                        className="tabular-nums"
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '0.95rem',
+                          color:
+                            tx.type === 'INCOME'
+                              ? 'var(--color-secondary)'
+                              : 'var(--color-tertiary-container)',
+                        }}
+                      >
+                        {tx.type === 'INCOME' ? '+ ' : '- '}
+                        {formatCentsToBrl(tx.amountCents)}
+                      </span>
+
+                      {/* Botão de Menu Contextual (...) */}
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            border: 0,
+                            background: 'transparent',
+                            color: 'var(--color-outline)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => setOpenMenuId((prev) => (prev === tx.id ? null : tx.id))}
+                          aria-label={`Ações para ${tx.description}`}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                            more_vert
+                          </span>
+                        </button>
+
+                        {/* Menu Dropdown Flutuante */}
+                        {openMenuId === tx.id && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: '36px',
+                              zIndex: 30,
+                              background: 'var(--color-surface)',
+                              border: '1px solid var(--color-border-card)',
+                              borderRadius: '12px',
+                              boxShadow: 'var(--shadow-lg)',
+                              padding: '0.35rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              minWidth: '160px',
+                            }}
+                          >
+                            <button
+                              type="button"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.5rem 0.65rem',
+                                border: 0,
+                                background: 'transparent',
+                                borderRadius: '8px',
+                                fontSize: '0.8125rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                color: 'var(--color-on-surface)',
+                                textAlign: 'left',
+                              }}
+                              onClick={() => void handleToggleStatus(tx)}
+                            >
+                              <span
+                                className="material-symbols-outlined"
+                                style={{ fontSize: '16px', color: 'var(--color-secondary)' }}
+                              >
+                                {tx.status === 'PAID' ? 'schedule' : 'check_circle'}
+                              </span>
+                              <span>
+                                {tx.status === 'PAID' ? 'Marcar Pendente' : 'Marcar como Pago'}
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.5rem 0.65rem',
+                                border: 0,
+                                background: 'transparent',
+                                borderRadius: '8px',
+                                fontSize: '0.8125rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                color: 'var(--color-on-surface)',
+                                textAlign: 'left',
+                              }}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                onEditTransaction(tx);
+                              }}
+                            >
+                              <span
+                                className="material-symbols-outlined"
+                                style={{ fontSize: '16px', color: 'var(--color-outline)' }}
+                              >
+                                edit
+                              </span>
+                              <span>Editar</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.5rem 0.65rem',
+                                border: 0,
+                                background: 'transparent',
+                                borderRadius: '8px',
+                                fontSize: '0.8125rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                color: 'var(--color-tertiary-container)',
+                                textAlign: 'left',
+                              }}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                if (tx.isRecurring) {
+                                  setDeletingRecurringTx(tx);
+                                } else {
+                                  setDeletingSingleTx(tx);
+                                }
+                              }}
+                            >
+                              <span
+                                className="material-symbols-outlined"
+                                style={{ fontSize: '16px' }}
+                              >
+                                delete
+                              </span>
+                              <span>Excluir</span>
+                            </button>
+                          </div>
                         )}
                       </div>
-                    </td>
-                    <td data-label="Categoria">
-                      <CategoryBadge
-                        name={tx.categoryName}
-                        color={tx.categoryColor}
-                        isArchived={tx.categoryIsArchived}
-                      />
-                    </td>
-                    <td data-label="Status">
-                      <button
-                        type="button"
-                        className={`btn-status-toggle ${
-                          tx.status === 'PAID' ? 'btn-status-paid' : 'btn-status-pending'
-                        }`}
-                        onClick={() => void handleToggleStatus(tx)}
-                        title="Clique para alternar o status de pagamento"
-                        aria-label={`Status atual: ${
-                          tx.status === 'PAID' ? 'Pago' : 'Pendente'
-                        }. Clique para alternar.`}
-                      >
-                        <span className="status-toggle-icon" aria-hidden="true">
-                          {tx.status === 'PAID' ? '✓' : '⏱'}
-                        </span>
-                        <span>
-                          {tx.status === 'PAID'
-                            ? tx.type === 'INCOME'
-                              ? 'Recebido'
-                              : 'Pago'
-                            : 'Pendente'}
-                        </span>
-                      </button>
-                    </td>
-                    <td
-                      data-label="Valor"
-                      className={`tabular-nums ${
-                        tx.type === 'INCOME' ? 'text-income' : 'text-expense'
-                      }`}
-                      style={{ fontWeight: 600 }}
-                    >
-                      {tx.type === 'INCOME' ? '+ ' : '- '}
-                      {formatCentsToBrl(tx.amountCents)}
-                    </td>
-                    <td data-label="Ações">
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ minHeight: '36px', padding: '0.25rem 0.6rem' }}
-                          onClick={() => onEditTransaction(tx)}
-                          aria-label={`Editar transação ${tx.description}`}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger"
-                          style={{ minHeight: '36px', padding: '0.25rem 0.6rem' }}
-                          onClick={() => {
-                            if (tx.isRecurring) {
-                              setDeletingRecurringTx(tx);
-                            } else {
-                              setDeletingSingleTx(tx);
-                            }
-                          }}
-                          aria-label={`Excluir transação ${tx.description}`}
-                        >
-                          Excluir
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-
-            <div
-              className="tabular-nums"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '0.75rem',
-                marginTop: '1rem',
-                paddingTop: '0.75rem',
-                borderTop: '1px solid var(--color-border-subtle)',
-                fontSize: '0.875rem',
-              }}
-            >
-              <span>
-                Total: <strong>{meta.totalItems}</strong> transações (Página{' '}
-                <strong>{meta.currentPage}</strong> de <strong>{meta.totalPages}</strong>)
-              </span>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label htmlFor="page-size-select" className="field-label">
-                  Itens:
-                </label>
-                <select
-                  id="page-size-select"
-                  className="select-control"
-                  style={{ width: 'auto', minHeight: '36px' }}
-                  value={pageSize}
-                  onChange={(event) => {
-                    setPageSize(Number.parseInt(event.target.value, 10));
-                    setPage(1);
-                  }}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ minHeight: '36px' }}
-                  disabled={meta.currentPage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Anterior
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ minHeight: '36px' }}
-                  disabled={meta.currentPage >= meta.totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Próxima
-                </button>
               </div>
             </div>
-          </>
-        )}
-      </section>
+          ))}
 
+          {/* Paginação do Extrato */}
+          <div
+            className="tabular-nums"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+              padding: '0.5rem 0',
+              fontSize: '0.8125rem',
+              color: 'var(--color-text-secondary)',
+            }}
+          >
+            <span>
+              Mostrando <strong>{items.length}</strong> de <strong>{meta.totalItems}</strong>{' '}
+              transações
+            </span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ height: '36px', padding: '0 0.75rem', fontSize: '0.8125rem' }}
+                disabled={meta.currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ height: '36px', padding: '0 0.75rem', fontSize: '0.8125rem' }}
+                disabled={meta.currentPage >= meta.totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modais de Exclusão */}
       {deletingRecurringTx && (
         <div className="modal-backdrop">
           <dialog
@@ -660,6 +867,7 @@ export function TransactionsView({
           </dialog>
         </div>
       )}
+
       {deletingSingleTx && (
         <ConfirmModal
           isOpen={true}

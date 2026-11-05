@@ -1,0 +1,364 @@
+{
+  "screenshot": {
+    "name": "projects/17660093246709247592/screens/a36a97cb0da0461abf3eab4fd18c6401/fileEntries/screenshot",
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/17660093246709247592/files/screenshot_00065f889266263c022d54f5e525d467:download",
+    "mimeType": "image/png"
+  },
+  "htmlCode": {
+    "name": "projects/17660093246709247592/screens/a36a97cb0da0461abf3eab4fd18c6401/fileEntries/html",
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/17660093246709247592/files/a36a97cb0da0461abf3eab4fd18c6401:download",
+    "mimeType": "text/html"
+  },
+  "id": "a36a97cb0da0461abf3eab4fd18c6401",
+  "generatedBy": "figaro_agent",
+  "width": "780",
+  "height": "3352",
+  "title": "Visão Geral - FinPulse",
+  "prompt": "Tela de Visão Geral (Dashboard) do FinPulse no celular (390px).\nDESTAQUE CRÍTICO: Deixar transparente a diferença entre valores consolidados (já pagos/recebidos) e pendentes.\n- Seletor de período no topo: botão de mês/ano interativo \"Outubro de 2024\" com setas anterior/próximo e atalho \"Mês atual\".\n- Card de Resumo Financeiro Geral:\n  - Saldo em Conta (Consolidado): R$ 4.820,50\n  - Projeção de Fim de Mês (Previsto com pendentes): R$ 3.190,50\n  - Aviso visual com badge âmbar: \"R$ 1.630,00 em contas a pagar até 31/10\".\n- Grade de Métricas do Mês:\n  - Receitas: Total previsto R$ 8.500,00 | Recebido: R$ 8.500,00 (100% recebido) com badge verde + ícone check.\n  - Despesas: Total previsto R$ 5.309,50 | Pago: R$ 3.679,50 | Pendente: R$ 1.630,00 (com badge âmbar de relógio e aviso sonoro visual).\n- Card de Alerta de Contas Pendentes Próximas do Vencimento:\n  - Aluguel & Condomínio: R$ 1.450,00 - Vence em 2 dias (Atenção)\n  - Internet Fibra: R$ 180,00 - Vence em 5 dias\n  - Ação rápida: Botão \"Pagar / Liquidar\" direto no card.\n- Gráfico simplificado de Evolução Diária (Receitas vs Despesas cumulativas ao longo do mês) com barra de status.\n- Gastos por Categoria (Barras de progresso com porcentagem e valores em R$): Moradia (42%), Alimentação (26%), Transporte (14%), Lazer (10%).\n- Metas Próximas do Limite (Card com status \"Atenção - 88%\" para Restaurantes & Delivery).\n- Atalho rápido \"Ver todas as transações\".",
+  "name": "projects/17660093246709247592/screens/a36a97cb0da0461abf3eab4fd18c6401",
+  "theme": {
+    "colorMode": "LIGHT",
+    "font": "PLUS_JAKARTA_SANS",
+    "roundness": "ROUND_EIGHT",
+    "customColor": "#2563eb",
+    "headlineFont": "PLUS_JAKARTA_SANS",
+    "bodyFont": "PLUS_JAKARTA_SANS",
+    "labelFont": "JETBRAINS_MONO",
+    "namedColors": {
+      "secondary_container": "#82f5c1",
+      "on_surface_variant": "#434655",
+      "secondary_fixed": "#85f8c4",
+      "on_secondary_fixed_variant": "#005137",
+      "on_primary_container": "#eeefff",
+      "tertiary_container": "#d52022",
+      "surface_dim": "#d2d9f4",
+      "outline_variant": "#c3c6d7",
+      "on_secondary_container": "#00714e",
+      "on_error": "#ffffff",
+      "error_container": "#ffdad6",
+      "on_tertiary_container": "#ffecea",
+      "secondary_fixed_dim": "#68dba9",
+      "on_secondary_fixed": "#002114",
+      "on_surface": "#131b2e",
+      "tertiary_fixed_dim": "#ffb4ab",
+      "on_secondary": "#ffffff",
+      "inverse_on_surface": "#eef0ff",
+      "on_tertiary_fixed_variant": "#93000b",
+      "surface_container_low": "#f2f3ff",
+      "background": "#faf8ff",
+      "on_error_container": "#93000a",
+      "primary": "#004ac6",
+      "on_primary_fixed": "#00174b",
+      "secondary": "#006c4a",
+      "surface_container_lowest": "#ffffff",
+      "tertiary": "#ae0010",
+      "primary_fixed": "#dbe1ff",
+      "surface_container": "#eaedff",
+      "surface_variant": "#dae2fd",
+      "surface_bright": "#faf8ff",
+      "primary_fixed_dim": "#b4c5ff",
+      "surface": "#faf8ff",
+      "on_primary": "#ffffff",
+      "surface_tint": "#0053db",
+      "error": "#ba1a1a",
+      "surface_container_highest": "#dae2fd",
+      "primary_container": "#2563eb",
+      "on_tertiary": "#ffffff",
+      "on_tertiary_fixed": "#410002",
+      "surface_container_high": "#e2e7ff",
+      "outline": "#737686",
+      "on_primary_fixed_variant": "#003ea8",
+      "inverse_primary": "#b4c5ff",
+      "inverse_surface": "#283044",
+      "on_background": "#131b2e",
+      "tertiary_fixed": "#ffdad6"
+    },
+    "colorVariant": "FIDELITY",
+    "overridePrimaryColor": "#2563eb",
+    "overrideSecondaryColor": "#059669",
+    "overrideTertiaryColor": "#dc2626",
+    "overrideNeutralColor": "#0f172a",
+    "spacingScale": 2,
+    "typography": {
+      "body-lg": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "1rem",
+        "fontWeight": "400",
+        "lineHeight": "1.5rem"
+      },
+      "headline-xl-mobile": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "1.75rem",
+        "fontWeight": "700",
+        "lineHeight": "2.25rem",
+        "letterSpacing": "-0.02em"
+      },
+      "body-sm": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "0.75rem",
+        "fontWeight": "400",
+        "lineHeight": "1.125rem"
+      },
+      "body-md": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "0.875rem",
+        "fontWeight": "400",
+        "lineHeight": "1.375rem"
+      },
+      "title-sm": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "1rem",
+        "fontWeight": "600",
+        "lineHeight": "1.5rem",
+        "letterSpacing": "-0.01em"
+      },
+      "currency-md": {
+        "fontFamily": "JetBrains Mono",
+        "fontSize": "0.875rem",
+        "fontWeight": "500",
+        "lineHeight": "1.25rem"
+      },
+      "label-sm": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "0.75rem",
+        "fontWeight": "600",
+        "lineHeight": "1rem",
+        "letterSpacing": "0.02em"
+      },
+      "currency-xl": {
+        "fontFamily": "JetBrains Mono",
+        "fontSize": "2rem",
+        "fontWeight": "600",
+        "lineHeight": "2.5rem",
+        "letterSpacing": "-0.02em"
+      },
+      "label-md": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "0.875rem",
+        "fontWeight": "600",
+        "lineHeight": "1.25rem"
+      },
+      "headline-md": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "1.25rem",
+        "fontWeight": "600",
+        "lineHeight": "1.75rem",
+        "letterSpacing": "-0.015em"
+      },
+      "headline-xl": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "2.25rem",
+        "fontWeight": "700",
+        "lineHeight": "2.75rem",
+        "letterSpacing": "-0.025em"
+      },
+      "currency-lg": {
+        "fontFamily": "JetBrains Mono",
+        "fontSize": "1.25rem",
+        "fontWeight": "600",
+        "lineHeight": "1.75rem"
+      },
+      "headline-lg": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": "1.5rem",
+        "fontWeight": "600",
+        "lineHeight": "2rem",
+        "letterSpacing": "-0.02em"
+      }
+    },
+    "spacing": {
+      "margin": "2rem",
+      "space-xl": "2rem",
+      "space-sm": "0.5rem",
+      "space-xs": "0.25rem",
+      "space-lg": "1.5rem",
+      "margin-mobile": "1rem",
+      "gutter": "1.5rem",
+      "space-md": "1rem",
+      "gutter-mobile": "1rem"
+    },
+    "headlineFontFamily": "Plus Jakarta Sans",
+    "bodyFontFamily": "Plus Jakarta Sans",
+    "labelFontFamily": "JetBrains Mono"
+  },
+  "deviceType": "MOBILE",
+  "screenType": "DESIGN",
+  "screenMetadata": {
+    "agentType": "PRO_AGENT",
+    "status": "COMPLETE"
+  },
+  "designSystem": {
+    "name": "assets/cffbdc48c24745b490cf56d61b35807d",
+    "designSystem": {
+      "displayName": "Clareza Financeira Moderna",
+      "styleGuidelines": "## Brand & Style\n\nO sistema adota um estilo **Corporate / Modern refinado**, focado em serenidade visual, precisão e autoridade institucional sem rigidez burocrática. A interface busca afastar a ansiedade financeira comum na gestão de dinheiro pessoal, transmitindo controle, previsibilidade e confiança imediata.\n\nA linguagem combina o rigor analítico das fintechs globais com o calor e a proximidade do usuário brasileiro. Superfícies amplas em tons off-white e cinza neutro criam um palco limpo onde dados monetários, tendências e status operacionais assumem o protagonismo visual com contraste rigoroso (normas WCAG 2.1 AA e AAA). Elementos táteis sutis — como divisores ultrafinos, sombras difusas e cantos arredondados generosos — conferem tangibilidade e precisão ao produto.\n\n## Layout & Spacing\n\nO sistema emprega um grid fluido de 12 colunas com contenção máxima de largura em 1280px para o painel principal, evitando dispersão visual em monitores widescreen.\n\n- **Breakpoints Operacionais:**\n  - *Mobile (< 768px):* Coluna única fluida, margens externas de `1rem`, barra de navegação e atalhos rápidos fixados na base inferior (bottom bar).\n  - *Tablet (768px – 1024px):* 8 colunas, margens de `1.5rem`, menus em gaveta recolhível e dashboards em duas colunas funcionais.\n  - *Desktop (> 1024px):* 12 colunas, margens de `2rem`, navegação lateral persistente (260px) com área central de conteúdo estruturada em blocos modulares.\n- **Ritmo Espacial:** A escala base de 8px (com nós de 4px para microalinhamentos) rege todos os preenchimentos. O espaçamento interno de cards prioriza respiro generoso (`space-lg`), garantindo que seções de balanços e gráficos nunca pareçam sobrecarregadas.\n\n## Elevation & Depth\n\nA profundidade é expressa pela combinação de **tonal layers**, bordas de baixo contraste e **sombras ambientais difusas** tingidas na cor Slate (`#0F172A`), evitando o aspecto cinzento ou artificial de sombras pretas puras.\n\n- **Nível 0 (Plano de Fundo):** `#F8FAFC`. Zero elevação.\n- **Nível 1 (Superfície dos Cards):** `#FFFFFF`, delimitado por borda perimetral de `1px solid #E2E8F0` associada a uma sombra difusa ultra-suave: `0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04)`.\n- **Nível 2 (Hover & Menus Flutuantes):** Elevação tátil para cards interativos e dropdowns: `0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.04)`.\n- **Nível 3 (Diálogos, Gavetas e Modais):** Sobreposição direta sobre backdrop escurecido com leve desfoque (`backdrop-filter: blur(4px)`): sombra `0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.06)`.\n\n## Components\n\n- **Botões (Buttons):**\n  - Área de toque mínima estrita de 44x44px em todos os dispositivos para garantia de acessibilidade motora.\n  - *Primário:* Fundo `#2563EB`, texto branco, sombra tátil suave. Em foco/ativo, anel de destaque externo com `#93C5FD`.\n  - *Secundário/Contorno:* Borda de 1px `#E2E8F0`, fundo branco, texto `#0F172A`.\n  - *Destrutivo:* Fundo `#DC2626` ou variante Ghost com texto em tom de alerta crítico.\n- **Badges de Status Duplo (Acessibilidade Visual):**\n  - Nunca usam apenas cor como indicador. Sempre combinam ícone indicativo + texto em caixa alta ou capitalizado.\n  - *Consolidada / Pago:* Ícone de confirmação preenchido (`CheckCircle2`), fundo `#ECFDF5`, texto e ícone `#047857`.\n  - *Pendente / Agendado:* Ícone de relógio ou ampulheta (`Clock`), fundo `#FFFBEB`, texto e ícone `#B45309`.\n  - *Atrasado / Atenção:* Ícone de exclamação (`AlertTriangle`), fundo `#FEF2F2`, texto e ícone `#B91C1C`.\n- **Campos de Entrada (Input Fields):**\n  - Altura padrão de 44px a 48px, com rótulos sempre visíveis acima do campo (nunca substituídos por placeholders).\n  - Em campos de moeda, prefixo `R$` ancorado à esquerda em peso visual fixo com máscara automática de decimais e alinhamento à direita para números.\n- **Cards de Resumo Financeiro:**\n  - Cantos `rounded-2xl`, fundo branco, borda `1px solid #E2E8F0`.\n  - Cabeçalho interno com indicador semântico em pílula e exibição do valor principal em tipografia de destaque monoespaçada, com percentual de variação em relação ao mês anterior logo abaixo.\n- **Listas e Extratos de Transações:**\n  - Linhas com altura mínima de 60px, separadores em `#F1F5F9`.\n  - Estrutura de três colunas: ícone de categoria circular à esquerda, descrição com data/status no centro, e valor formatado com sinal explícito (`+ R$` verde ou `- R$` vermelho/neutro) à direita.\n- **Estados Vazios (Empty States):**\n  - Ilustrações em traço limpo neutro com ponto focal na cor primária, títulos amigáveis em pt-BR e CTA claro de primeiro passo (ex.: \"Nenhuma despesa registrada este mês. Adicione seu primeiro lançamento para acompanhar sua evolução.\").",
+      "theme": {
+        "colorMode": "LIGHT",
+        "font": "PLUS_JAKARTA_SANS",
+        "roundness": "ROUND_EIGHT",
+        "customColor": "#2563eb",
+        "headlineFont": "PLUS_JAKARTA_SANS",
+        "bodyFont": "PLUS_JAKARTA_SANS",
+        "labelFont": "JETBRAINS_MONO",
+        "namedColors": {
+          "inverse_on_surface": "#eef0ff",
+          "surface_container": "#eaedff",
+          "on_error_container": "#93000a",
+          "tertiary": "#ae0010",
+          "surface_tint": "#0053db",
+          "primary_fixed_dim": "#b4c5ff",
+          "tertiary_fixed": "#ffdad6",
+          "on_primary_fixed": "#00174b",
+          "error_container": "#ffdad6",
+          "on_secondary_fixed": "#002114",
+          "on_primary_fixed_variant": "#003ea8",
+          "tertiary_fixed_dim": "#ffb4ab",
+          "surface_container_highest": "#dae2fd",
+          "on_tertiary_fixed": "#410002",
+          "tertiary_container": "#d52022",
+          "outline_variant": "#c3c6d7",
+          "outline": "#737686",
+          "surface_bright": "#faf8ff",
+          "on_primary": "#ffffff",
+          "on_secondary_fixed_variant": "#005137",
+          "on_surface_variant": "#434655",
+          "secondary_fixed": "#85f8c4",
+          "surface_container_high": "#e2e7ff",
+          "surface_container_lowest": "#ffffff",
+          "on_tertiary": "#ffffff",
+          "primary_container": "#2563eb",
+          "surface": "#faf8ff",
+          "on_tertiary_fixed_variant": "#93000b",
+          "on_primary_container": "#eeefff",
+          "secondary": "#006c4a",
+          "surface_dim": "#d2d9f4",
+          "inverse_surface": "#283044",
+          "inverse_primary": "#b4c5ff",
+          "secondary_container": "#82f5c1",
+          "on_secondary": "#ffffff",
+          "primary_fixed": "#dbe1ff",
+          "on_surface": "#131b2e",
+          "primary": "#004ac6",
+          "on_secondary_container": "#00714e",
+          "surface_variant": "#dae2fd",
+          "surface_container_low": "#f2f3ff",
+          "secondary_fixed_dim": "#68dba9",
+          "on_tertiary_container": "#ffecea",
+          "error": "#ba1a1a",
+          "on_error": "#ffffff",
+          "background": "#faf8ff",
+          "on_background": "#131b2e"
+        },
+        "designMd": "---\nname: Clareza Financeira Moderna\ncolors:\n  surface: '#faf8ff'\n  surface-dim: '#d2d9f4'\n  surface-bright: '#faf8ff'\n  surface-container-lowest: '#ffffff'\n  surface-container-low: '#f2f3ff'\n  surface-container: '#eaedff'\n  surface-container-high: '#e2e7ff'\n  surface-container-highest: '#dae2fd'\n  on-surface: '#131b2e'\n  on-surface-variant: '#434655'\n  inverse-surface: '#283044'\n  inverse-on-surface: '#eef0ff'\n  outline: '#737686'\n  outline-variant: '#c3c6d7'\n  surface-tint: '#0053db'\n  primary: '#004ac6'\n  on-primary: '#ffffff'\n  primary-container: '#2563eb'\n  on-primary-container: '#eeefff'\n  inverse-primary: '#b4c5ff'\n  secondary: '#006c4a'\n  on-secondary: '#ffffff'\n  secondary-container: '#82f5c1'\n  on-secondary-container: '#00714e'\n  tertiary: '#ae0010'\n  on-tertiary: '#ffffff'\n  tertiary-container: '#d52022'\n  on-tertiary-container: '#ffecea'\n  error: '#ba1a1a'\n  on-error: '#ffffff'\n  error-container: '#ffdad6'\n  on-error-container: '#93000a'\n  primary-fixed: '#dbe1ff'\n  primary-fixed-dim: '#b4c5ff'\n  on-primary-fixed: '#00174b'\n  on-primary-fixed-variant: '#003ea8'\n  secondary-fixed: '#85f8c4'\n  secondary-fixed-dim: '#68dba9'\n  on-secondary-fixed: '#002114'\n  on-secondary-fixed-variant: '#005137'\n  tertiary-fixed: '#ffdad6'\n  tertiary-fixed-dim: '#ffb4ab'\n  on-tertiary-fixed: '#410002'\n  on-tertiary-fixed-variant: '#93000b'\n  background: '#faf8ff'\n  on-background: '#131b2e'\n  surface-variant: '#dae2fd'\ntypography:\n  headline-xl:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 2.25rem\n    fontWeight: '700'\n    lineHeight: 2.75rem\n    letterSpacing: -0.025em\n  headline-xl-mobile:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 1.75rem\n    fontWeight: '700'\n    lineHeight: 2.25rem\n    letterSpacing: -0.02em\n  headline-lg:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 1.5rem\n    fontWeight: '600'\n    lineHeight: 2rem\n    letterSpacing: -0.02em\n  headline-md:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 1.25rem\n    fontWeight: '600'\n    lineHeight: 1.75rem\n    letterSpacing: -0.015em\n  title-sm:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 1rem\n    fontWeight: '600'\n    lineHeight: 1.5rem\n    letterSpacing: -0.01em\n  body-lg:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 1rem\n    fontWeight: '400'\n    lineHeight: 1.5rem\n  body-md:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 0.875rem\n    fontWeight: '400'\n    lineHeight: 1.375rem\n  body-sm:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 0.75rem\n    fontWeight: '400'\n    lineHeight: 1.125rem\n  currency-xl:\n    fontFamily: JetBrains Mono\n    fontSize: 2rem\n    fontWeight: '600'\n    lineHeight: 2.5rem\n    letterSpacing: -0.02em\n  currency-lg:\n    fontFamily: JetBrains Mono\n    fontSize: 1.25rem\n    fontWeight: '600'\n    lineHeight: 1.75rem\n  currency-md:\n    fontFamily: JetBrains Mono\n    fontSize: 0.875rem\n    fontWeight: '500'\n    lineHeight: 1.25rem\n  label-md:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 0.875rem\n    fontWeight: '600'\n    lineHeight: 1.25rem\n  label-sm:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 0.75rem\n    fontWeight: '600'\n    lineHeight: 1rem\n    letterSpacing: 0.02em\nrounded:\n  sm: 0.25rem\n  DEFAULT: 0.5rem\n  md: 0.75rem\n  lg: 1rem\n  xl: 1.5rem\n  full: 9999px\nspacing:\n  gutter: 1.5rem\n  gutter-mobile: 1rem\n  margin: 2rem\n  margin-mobile: 1rem\n  space-xs: 0.25rem\n  space-sm: 0.5rem\n  space-md: 1rem\n  space-lg: 1.5rem\n  space-xl: 2rem\n---\n\n## Brand & Style\n\nO sistema adota um estilo **Corporate / Modern refinado**, focado em serenidade visual, precisão e autoridade institucional sem rigidez burocrática. A interface busca afastar a ansiedade financeira comum na gestão de dinheiro pessoal, transmitindo controle, previsibilidade e confiança imediata.\n\nA linguagem combina o rigor analítico das fintechs globais com o calor e a proximidade do usuário brasileiro. Superfícies amplas em tons off-white e cinza neutro criam um palco limpo onde dados monetários, tendências e status operacionais assumem o protagonismo visual com contraste rigoroso (normas WCAG 2.1 AA e AAA). Elementos táteis sutis — como divisores ultrafinos, sombras difusas e cantos arredondados generosos — conferem tangibilidade e precisão ao produto.\n\n## Colors\n\nA paleta cromática foi estruturada para balancear funcionalidade operacional, tomada de decisão assertiva e conformidade estrita de acessibilidade.\n\n- **Primária (`#2563EB` / Azul Índigo Moderno):** Conduz o foco de navegação, botões de ação principal (CTAs), seletores ativos e pontos de ancoragem em visualizações de dados.\n- **Secundária / Positivo (`#059669` / Verde Esmeralda):** Exclusiva para receitas confirmadas, metas atingidas, saldos credores e indicadores de crescimento patrimonial. Possui variante de realce (`#10B981`) para elementos gráficos e preenchimentos secundários.\n- **Terciária / Débito (`#DC2626` / Vermelho Sóbrio):** Reservada para despesas, fluxo de saída, orçamentos estourados e ações destrutivas. Variante (`#EF4444`) para badges e traços de gráficos.\n- **Alerta & Pendência (`#D97706` / Âmbar Refinado):** Identifica transações agendadas, faturas a vencer, limites em risco e estados provisórios que exigem conciliação.\n- **Neutros & Estrutura:**\n  - Base de Canvas: `#F8FAFC` (Slate 50)\n  - Superfícies e Containers de Cards: `#FFFFFF` (Surface) e `#F1F5F9` (Slate 100)\n  - Bordas e Delimitadores: `#E2E8F0` (Slate 200)\n  - Tipografia Neutra Principal: `#0F172A` (Slate 900)\n  - Tipografia de Apoio e Metadados: `#475569` (Slate 600) e `#64748B` (Slate 500)\n\n## Typography\n\nA tipografia prioriza legibilidade instantânea em números, relatórios e listas de lançamentos em pt-BR.\n\n- **Títulos e Corpo (`Plus Jakarta Sans`):** Suas formas geométricas abertas e proporções modernas fornecem calor visual aos cabeçalhos e legibilidade sem esforço em parágrafos, formulários e metadados descritivos.\n- **Valores e Métricas Financeiras (`JetBrains Mono`):** Todos os montantes monetários em Real (R$), saldos de extrato, taxas e porcentagens utilizam tipografia monoespaçada com numerais tabulares nativos (`tnum`). Isso garante alinhamento vertical exato das casas decimais em tabelas e extratos.\n- **Regras de Formatação Regional (pt-BR):** Espaçamento obrigatório após o símbolo monetário (ex.: `R$ 1.450,90`). Separador de milhar com ponto (`.`) e decimal com vírgula (`,`).\n\n## Layout & Spacing\n\nO sistema emprega um grid fluido de 12 colunas com contenção máxima de largura em 1280px para o painel principal, evitando dispersão visual em monitores widescreen.\n\n- **Breakpoints Operacionais:**\n  - *Mobile (< 768px):* Coluna única fluida, margens externas de `1rem`, barra de navegação e atalhos rápidos fixados na base inferior (bottom bar).\n  - *Tablet (768px – 1024px):* 8 colunas, margens de `1.5rem`, menus em gaveta recolhível e dashboards em duas colunas funcionais.\n  - *Desktop (> 1024px):* 12 colunas, margens de `2rem`, navegação lateral persistente (260px) com área central de conteúdo estruturada em blocos modulares.\n- **Ritmo Espacial:** A escala base de 8px (com nós de 4px para microalinhamentos) rege todos os preenchimentos. O espaçamento interno de cards prioriza respiro generoso (`space-lg`), garantindo que seções de balanços e gráficos nunca pareçam sobrecarregadas.\n\n## Elevation & Depth\n\nA profundidade é expressa pela combinação de **tonal layers**, bordas de baixo contraste e **sombras ambientais difusas** tingidas na cor Slate (`#0F172A`), evitando o aspecto cinzento ou artificial de sombras pretas puras.\n\n- **Nível 0 (Plano de Fundo):** `#F8FAFC`. Zero elevação.\n- **Nível 1 (Superfície dos Cards):** `#FFFFFF`, delimitado por borda perimetral de `1px solid #E2E8F0` associada a uma sombra difusa ultra-suave: `0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04)`.\n- **Nível 2 (Hover & Menus Flutuantes):** Elevação tátil para cards interativos e dropdowns: `0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.04)`.\n- **Nível 3 (Diálogos, Gavetas e Modais):** Sobreposição direta sobre backdrop escurecido com leve desfoque (`backdrop-filter: blur(4px)`): sombra `0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.06)`.\n\n## Shapes\n\nO sistema utiliza roundedness escala 2 para equilibrar modernidade com seriedade institucional:\n- **Containers e Cards Principais:** Empregam `rounded-xl` (1rem) a `rounded-2xl` (1.5rem), gerando silhuetas limpas e amigáveis.\n- **Botões e Campos de Formulário:** Padronizados com `rounded-md` (0.5rem) ou `rounded-lg` (0.75rem), fornecendo limites geométricos bem definidos e foco visual claro.\n- **Badges, Tags e Chips:** Utilizam acabamento de pílula completa (`rounded-full`) para diferenciar metadados de status de controles clicáveis maiores.\n\n## Components\n\n- **Botões (Buttons):**\n  - Área de toque mínima estrita de 44x44px em todos os dispositivos para garantia de acessibilidade motora.\n  - *Primário:* Fundo `#2563EB`, texto branco, sombra tátil suave. Em foco/ativo, anel de destaque externo com `#93C5FD`.\n  - *Secundário/Contorno:* Borda de 1px `#E2E8F0`, fundo branco, texto `#0F172A`.\n  - *Destrutivo:* Fundo `#DC2626` ou variante Ghost com texto em tom de alerta crítico.\n- **Badges de Status Duplo (Acessibilidade Visual):**\n  - Nunca usam apenas cor como indicador. Sempre combinam ícone indicativo + texto em caixa alta ou capitalizado.\n  - *Consolidada / Pago:* Ícone de confirmação preenchido (`CheckCircle2`), fundo `#ECFDF5`, texto e ícone `#047857`.\n  - *Pendente / Agendado:* Ícone de relógio ou ampulheta (`Clock`), fundo `#FFFBEB`, texto e ícone `#B45309`.\n  - *Atrasado / Atenção:* Ícone de exclamação (`AlertTriangle`), fundo `#FEF2F2`, texto e ícone `#B91C1C`.\n- **Campos de Entrada (Input Fields):**\n  - Altura padrão de 44px a 48px, com rótulos sempre visíveis acima do campo (nunca substituídos por placeholders).\n  - Em campos de moeda, prefixo `R$` ancorado à esquerda em peso visual fixo com máscara automática de decimais e alinhamento à direita para números.\n- **Cards de Resumo Financeiro:**\n  - Cantos `rounded-2xl`, fundo branco, borda `1px solid #E2E8F0`.\n  - Cabeçalho interno com indicador semântico em pílula e exibição do valor principal em tipografia de destaque monoespaçada, com percentual de variação em relação ao mês anterior logo abaixo.\n- **Listas e Extratos de Transações:**\n  - Linhas com altura mínima de 60px, separadores em `#F1F5F9`.\n  - Estrutura de três colunas: ícone de categoria circular à esquerda, descrição com data/status no centro, e valor formatado com sinal explícito (`+ R$` verde ou `- R$` vermelho/neutro) à direita.\n- **Estados Vazios (Empty States):**\n  - Ilustrações em traço limpo neutro com ponto focal na cor primária, títulos amigáveis em pt-BR e CTA claro de primeiro passo (ex.: \"Nenhuma despesa registrada este mês. Adicione seu primeiro lançamento para acompanhar sua evolução.\").",
+        "colorVariant": "FIDELITY",
+        "overridePrimaryColor": "#2563eb",
+        "overrideSecondaryColor": "#059669",
+        "overrideTertiaryColor": "#dc2626",
+        "overrideNeutralColor": "#0f172a",
+        "spacingScale": 2,
+        "typography": {
+          "currency-md": {
+            "fontFamily": "JetBrains Mono",
+            "fontSize": "0.875rem",
+            "fontWeight": "500",
+            "lineHeight": "1.25rem"
+          },
+          "body-lg": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "1rem",
+            "fontWeight": "400",
+            "lineHeight": "1.5rem"
+          },
+          "label-sm": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "0.75rem",
+            "fontWeight": "600",
+            "lineHeight": "1rem",
+            "letterSpacing": "0.02em"
+          },
+          "body-md": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "0.875rem",
+            "fontWeight": "400",
+            "lineHeight": "1.375rem"
+          },
+          "body-sm": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "0.75rem",
+            "fontWeight": "400",
+            "lineHeight": "1.125rem"
+          },
+          "label-md": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "0.875rem",
+            "fontWeight": "600",
+            "lineHeight": "1.25rem"
+          },
+          "headline-xl-mobile": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "1.75rem",
+            "fontWeight": "700",
+            "lineHeight": "2.25rem",
+            "letterSpacing": "-0.02em"
+          },
+          "headline-lg": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "1.5rem",
+            "fontWeight": "600",
+            "lineHeight": "2rem",
+            "letterSpacing": "-0.02em"
+          },
+          "currency-lg": {
+            "fontFamily": "JetBrains Mono",
+            "fontSize": "1.25rem",
+            "fontWeight": "600",
+            "lineHeight": "1.75rem"
+          },
+          "headline-md": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "1.25rem",
+            "fontWeight": "600",
+            "lineHeight": "1.75rem",
+            "letterSpacing": "-0.015em"
+          },
+          "headline-xl": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "2.25rem",
+            "fontWeight": "700",
+            "lineHeight": "2.75rem",
+            "letterSpacing": "-0.025em"
+          },
+          "currency-xl": {
+            "fontFamily": "JetBrains Mono",
+            "fontSize": "2rem",
+            "fontWeight": "600",
+            "lineHeight": "2.5rem",
+            "letterSpacing": "-0.02em"
+          },
+          "title-sm": {
+            "fontFamily": "Plus Jakarta Sans",
+            "fontSize": "1rem",
+            "fontWeight": "600",
+            "lineHeight": "1.5rem",
+            "letterSpacing": "-0.01em"
+          }
+        },
+        "spacing": {
+          "space-md": "1rem",
+          "margin": "2rem",
+          "space-lg": "1.5rem",
+          "space-xs": "0.25rem",
+          "margin-mobile": "1rem",
+          "space-sm": "0.5rem",
+          "gutter-mobile": "1rem",
+          "gutter": "1.5rem",
+          "space-xl": "2rem"
+        },
+        "headlineFontFamily": "Plus Jakarta Sans",
+        "bodyFontFamily": "Plus Jakarta Sans",
+        "labelFontFamily": "JetBrains Mono"
+      }
+    },
+    "version": "1"
+  }
+}

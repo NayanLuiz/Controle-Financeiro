@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-dim": "#d2d9f4", "outline": "#737686", "primary-fixed": "#dbe1ff", "on-tertiary-container": "#ffecea", "tertiary-container": "#d52022", "on-secondary-fixed": "#002114", "on-secondary": "#ffffff", "on-secondary-fixed-variant": "#005137", "inverse-surface": "#283044", "surface-container-highest": "#dae2fd", "secondary": "#006c4a", "surface-variant": "#dae2fd", "on-surface-variant": "#434655", "surface-container-high": "#e2e7ff", "on-error-container": "#93000a", "surface-container-lowest": "#ffffff", "secondary-container": "#82f5c1", "surface-container-low": "#f2f3ff", "primary-container": "#2563eb", "on-surface": "#131b2e", "on-background": "#131b2e", "surface": "#faf8ff", "on-tertiary-fixed-variant": "#93000b", "on-primary-container": "#eeefff", "outline-variant": "#c3c6d7", "surface-bright": "#faf8ff", "tertiary-fixed": "#ffdad6", "secondary-fixed": "#85f8c4", "on-secondary-container": "#00714e", "surface-container": "#eaedff", "secondary-fixed-dim": "#68dba9", "tertiary": "#ae0010", "on-error": "#ffffff", "error": "#ba1a1a", "error-container": "#ffdad6", "primary-fixed-dim": "#b4c5ff", "inverse-primary": "#b4c5ff", "on-primary-fixed-variant": "#003ea8", "inverse-on-surface": "#eef0ff", "tertiary-fixed-dim": "#ffb4ab", "background": "#faf8ff", "on-tertiary-fixed": "#410002", "on-tertiary": "#ffffff", "primary": "#004ac6", "surface-tint": "#0053db", "on-primary-fixed": "#00174b", "on-primary": "#ffffff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "gutter": "1.5rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter-mobile": "1rem", "space-xl": "2rem", "space-md": "1rem", "margin-mobile": "1rem", "margin": "2rem", "space-lg": "1.5rem" }, fontFamily: { "label-md": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "currency-md": ["JetBrains Mono"], "currency-xl": ["JetBrains Mono"], "headline-md": ["Plus Jakarta Sans"], "headline-xl-mobile": ["Plus Jakarta Sans"], "headline-xl": ["Plus Jakarta Sans"], "title-sm": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "currency-lg": ["JetBrains Mono"] }, fontSize: { "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "600" }], "body-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }], "body-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }], "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "label-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "currency-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }], "currency-xl": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-xl-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-xl": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.025em", "fontWeight": "700" }], "title-sm": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }], "currency-lg": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "600" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;-webkit-tap-highlight-color:transparent;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 0.5rem);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter-mobile flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0 flex-1"><img alt="FinPulse Logo" class="h-8 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1Uzilzmw8fDu_LLf4TpEOpTdSCZxRFROy44X7OazYN_P1-L-M9PQ36pNz_9IN4y-g4KWDl1LQLfBNaa7X_NYsEmLKWphr3I1jNEM1C36hA97K1S8Nd0vyxfr40SbRThIHyAYRO1pBfiXyo800mPNNBH1PnOJr9wIMUL7pkUWbDzyv6JtIDc6fmzE_dfVbxn5giOTTmb8cTv6V2JVbMxPn4uapTMuUoggDAdAxVIThG1"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-1.5"><span class="font-headline-md text-headline-md tracking-tight text-on-surface truncate">FinPulse</span><span class="flex h-2 w-2 relative flex-shrink-0" title="Sincronizado"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span></div><span class="font-body-sm text-body-sm text-on-surface-variant truncate">Transações</span></div></div><div class="flex items-center gap-space-xs flex-shrink-0"><button class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span></button><button class="w-11 h-11 flex items-center justify-center rounded-full p-0.5 focus:outline-none focus:ring-2 focus:ring-primary-container"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdyDXYJ9UMdYIRUMxVLtjAAcNAzSl3u76GrNt1rjOGg652ZlnG6JanNT1ZAMBH9c6sLvpHeT82DuI3ZkQDPPvOltNL8MrZsZqp36Krxuw34qmZODfuRoAGEBhknkt0FZiua0lkMVeVQ86mYdlCdsbQi7jC4MkyXQ-uGWIHHKc_1m4UAQRydaB7VipbuM1elIS_B3Dfw8sLCCA_mczwLN0uHQ4Wi-54EXT3Z7Bw6E_c"/></button></div></div></header><main class="flex-1 w-full bg-surface pt-16 pb-28 px-gutter-mobile"><div class="flex flex-col w-full gap-space-md">
+<!-- Bloco de Ações Superiores & Busca -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center gap-space-xs">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">search</span>
+<input class="w-full h-11 pl-10 pr-4 rounded-xl bg-surface-container text-on-surface placeholder:text-outline font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" id="search-input" placeholder="Buscar transação por nome..." type="text"/>
+</div>
+<button class="h-11 px-3.5 rounded-xl bg-surface-container text-on-surface hover:bg-surface-container-high active:scale-95 flex items-center gap-1.5 font-label-md text-label-md transition-all shadow-sm flex-shrink-0" id="btn-export-csv" title="Exportar extrato em formato CSV">
+<span class="material-symbols-outlined text-[18px] text-primary">download</span>
+<span>CSV</span>
+</button>
+</div>
+<!-- Barra de Filtros Rápidos (Chips Roláveis) -->
+<div class="flex items-center gap-2 overflow-x-auto py-1 no-scrollbar -mx-gutter-mobile px-gutter-mobile">
+<!-- Filtro Tipo -->
+<button class="filter-chip active flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm shadow-sm whitespace-nowrap transition-all">
+<span>Todas</span>
+</button>
+<button class="filter-chip flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-all">
+<span class="material-symbols-outlined text-[16px] text-secondary">trending_up</span>
+<span>Receitas (+)</span>
+</button>
+<button class="filter-chip flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-all">
+<span class="material-symbols-outlined text-[16px] text-tertiary">trending_down</span>
+<span>Despesas (-)</span>
+</button>
+<div class="h-4 w-[1px] bg-outline-variant flex-shrink-0 mx-1"></div>
+<!-- Filtro Status -->
+<button class="filter-chip flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-all">
+<span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
+<span>Concluídos</span>
+</button>
+<button class="filter-chip flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-all">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container">schedule</span>
+<span>Pendentes</span>
+</button>
+<!-- Dropdown Categoria -->
+<button class="filter-chip flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm whitespace-nowrap transition-all">
+<span class="material-symbols-outlined text-[16px]">category</span>
+<span>Categorias</span>
+<span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Resumo Operacional do Filtro -->
+<div class="bg-surface-container-low rounded-2xl p-4 shadow-sm flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Fluxo Líquido Filtrado</span>
+<span class="font-label-sm text-label-sm text-outline">Outubro, 2024</span>
+</div>
+<div class="grid grid-cols-2 gap-3 pt-1">
+<div class="flex flex-col bg-surface-container-lowest rounded-xl p-2.5 shadow-sm">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
+<span class="font-label-sm text-label-sm">Total Pago</span>
+</div>
+<span class="font-currency-lg text-currency-lg text-on-surface font-semibold mt-0.5">-R$ 3.679,50</span>
+</div>
+<div class="flex flex-col bg-surface-container-lowest rounded-xl p-2.5 shadow-sm">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container">pending</span>
+<span class="font-label-sm text-label-sm">Pendente</span>
+</div>
+<span class="font-currency-lg text-currency-lg text-tertiary-container font-semibold mt-0.5">R$ 1.630,00</span>
+</div>
+</div>
+</div>
+<!-- Lista Agrupada por Data -->
+<div class="flex flex-col gap-space-md" id="transaction-groups">
+<!-- Grupo: Hoje -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<h2 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">Hoje, 24 de Outubro</h2>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">2 transações</span>
+</div>
+<div class="flex flex-col bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden divide-y-0">
+<!-- Item 1: Supermercado (Despesa Paga) -->
+<div class="p-3.5 flex items-center justify-between gap-3 active:bg-surface-container-low transition-colors relative" data-id="tx-1">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-11 h-11 rounded-xl bg-surface-container-high text-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">shopping_cart</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate font-semibold">Pão de Açúcar</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Alimentação</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-secondary/10 text-secondary font-label-sm text-[11px]">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  Pago
+                </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<div class="flex flex-col items-end">
+<span class="font-currency-md text-currency-md text-tertiary font-bold">-R$ 142,80</span>
+<span class="font-body-sm text-body-sm text-outline">18:42</span>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" onclick="toggleMenu('tx-1-menu', event)">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<!-- Menu de Contexto Tx 1 -->
+<div class="hidden absolute right-3 top-12 z-20 bg-surface-container-lowest shadow-xl rounded-xl p-1.5 flex flex-col gap-0.5 min-w-[150px]" id="tx-1-menu">
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-on-surface hover:bg-surface-container font-label-sm text-label-sm w-full text-left" onclick="editTransaction('Pão de Açúcar', 'tx-1-menu')">
+<span class="material-symbols-outlined text-[16px] text-outline">edit</span>
+              Editar
+            </button>
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-tertiary hover:bg-tertiary-fixed font-label-sm text-label-sm w-full text-left" onclick="deleteTransaction('tx-1', 'tx-1-menu')">
+<span class="material-symbols-outlined text-[16px] text-tertiary">delete</span>
+              Excluir
+            </button>
+</div>
+</div>
+<div class="h-[1px] bg-surface-container mx-3.5"></div>
+<!-- Item 2: Consultoria (Receita Concluída) -->
+<div class="p-3.5 flex items-center justify-between gap-3 active:bg-surface-container-low transition-colors relative" data-id="tx-2">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-11 h-11 rounded-xl bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate font-semibold">Consultoria UX FinPulse</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Salário / Freelance</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-secondary/10 text-secondary font-label-sm text-[11px]">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  Recebido
+                </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<div class="flex flex-col items-end">
+<span class="font-currency-md text-currency-md text-secondary font-bold">+R$ 4.250,00</span>
+<span class="font-body-sm text-body-sm text-outline">14:15</span>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" onclick="toggleMenu('tx-2-menu', event)">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<!-- Menu de Contexto Tx 2 -->
+<div class="hidden absolute right-3 top-12 z-20 bg-surface-container-lowest shadow-xl rounded-xl p-1.5 flex flex-col gap-0.5 min-w-[150px]" id="tx-2-menu">
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-on-surface hover:bg-surface-container font-label-sm text-label-sm w-full text-left" onclick="editTransaction('Consultoria UX FinPulse', 'tx-2-menu')">
+<span class="material-symbols-outlined text-[16px] text-outline">edit</span>
+              Editar
+            </button>
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-tertiary hover:bg-tertiary-fixed font-label-sm text-label-sm w-full text-left" onclick="deleteTransaction('tx-2', 'tx-2-menu')">
+<span class="material-symbols-outlined text-[16px] text-tertiary">delete</span>
+              Excluir
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Grupo: Ontem -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">Ontem, 23 de Outubro</h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant">2 transações</span>
+</div>
+<div class="flex flex-col bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+<!-- Item 3: Aluguel (Despesa Pendente) -->
+<div class="p-3.5 flex items-center justify-between gap-3 active:bg-surface-container-low transition-colors relative" data-id="tx-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-11 h-11 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">home</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate font-semibold">Aluguel Apartamento 402</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Moradia</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-tertiary-container/15 text-tertiary-container font-label-sm text-[11px]" id="badge-tx-3">
+<span class="material-symbols-outlined text-[12px]">schedule</span>
+                  Pendente
+                </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<div class="flex flex-col items-end">
+<span class="font-currency-md text-currency-md text-outline font-bold" id="val-tx-3">R$ 1.630,00</span>
+<span class="font-body-sm text-body-sm text-tertiary font-medium">Vence amanhã</span>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" onclick="toggleMenu('tx-3-menu', event)">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<!-- Menu de Contexto Tx 3 com Ação de Pagar -->
+<div class="hidden absolute right-3 top-12 z-20 bg-surface-container-lowest shadow-xl rounded-xl p-1.5 flex flex-col gap-0.5 min-w-[170px]" id="tx-3-menu">
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-secondary hover:bg-secondary-container/30 font-label-sm text-label-sm w-full text-left" onclick="markAsPaid('tx-3', 'tx-3-menu')">
+<span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
+              Marcar como Pago
+            </button>
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-on-surface hover:bg-surface-container font-label-sm text-label-sm w-full text-left" onclick="editTransaction('Aluguel Apartamento 402', 'tx-3-menu')">
+<span class="material-symbols-outlined text-[16px] text-outline">edit</span>
+              Editar
+            </button>
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-tertiary hover:bg-tertiary-fixed font-label-sm text-label-sm w-full text-left" onclick="deleteTransaction('tx-3', 'tx-3-menu')">
+<span class="material-symbols-outlined text-[16px] text-tertiary">delete</span>
+              Excluir
+            </button>
+</div>
+</div>
+<div class="h-[1px] bg-surface-container mx-3.5"></div>
+<!-- Item 4: Uber (Transporte Pago) -->
+<div class="p-3.5 flex items-center justify-between gap-3 active:bg-surface-container-low transition-colors relative" data-id="tx-4">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-11 h-11 rounded-xl bg-surface-container-highest text-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">directions_car</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate font-semibold">Uber Viagens</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Transporte</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-secondary/10 text-secondary font-label-sm text-[11px]">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  Pago
+                </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<div class="flex flex-col items-end">
+<span class="font-currency-md text-currency-md text-tertiary font-bold">-R$ 38,90</span>
+<span class="font-body-sm text-body-sm text-outline">09:12</span>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" onclick="toggleMenu('tx-4-menu', event)">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<!-- Menu de Contexto Tx 4 -->
+<div class="hidden absolute right-3 top-12 z-20 bg-surface-container-lowest shadow-xl rounded-xl p-1.5 flex flex-col gap-0.5 min-w-[150px]" id="tx-4-menu">
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-on-surface hover:bg-surface-container font-label-sm text-label-sm w-full text-left" onclick="editTransaction('Uber Viagens', 'tx-4-menu')">
+<span class="material-symbols-outlined text-[16px] text-outline">edit</span>
+              Editar
+            </button>
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-tertiary hover:bg-tertiary-fixed font-label-sm text-label-sm w-full text-left" onclick="deleteTransaction('tx-4', 'tx-4-menu')">
+<span class="material-symbols-outlined text-[16px] text-tertiary">delete</span>
+              Excluir
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Grupo: 20 de Outubro -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">20 de Outubro</h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant">1 transação</span>
+</div>
+<div class="flex flex-col bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+<!-- Item 5: Farmácia Drogasil -->
+<div class="p-3.5 flex items-center justify-between gap-3 active:bg-surface-container-low transition-colors relative" data-id="tx-5">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-11 h-11 rounded-xl bg-tertiary-fixed-dim/40 text-tertiary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">medical_services</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate font-semibold">Droga Raia Farmácia</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Saúde &amp; Bem-estar</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-secondary/10 text-secondary font-label-sm text-[11px]">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  Pago
+                </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<div class="flex flex-col items-end">
+<span class="font-currency-md text-currency-md text-tertiary font-bold">-R$ 84,20</span>
+<span class="font-body-sm text-body-sm text-outline">16:04</span>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" onclick="toggleMenu('tx-5-menu', event)">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<!-- Menu de Contexto Tx 5 -->
+<div class="hidden absolute right-3 top-12 z-20 bg-surface-container-lowest shadow-xl rounded-xl p-1.5 flex flex-col gap-0.5 min-w-[150px]" id="tx-5-menu">
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-on-surface hover:bg-surface-container font-label-sm text-label-sm w-full text-left" onclick="editTransaction('Droga Raia Farmácia', 'tx-5-menu')">
+<span class="material-symbols-outlined text-[16px] text-outline">edit</span>
+              Editar
+            </button>
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg text-tertiary hover:bg-tertiary-fixed font-label-sm text-label-sm w-full text-left" onclick="deleteTransaction('tx-5', 'tx-5-menu')">
+<span class="material-symbols-outlined text-[16px] text-tertiary">delete</span>
+              Excluir
+            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Indicador de Paginação Móvel Clara & Botão Carregar Mais -->
+<div class="flex flex-col items-center gap-3 pt-2 pb-4">
+<div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+<span id="pagination-text">Mostrando 5 de 42 transações</span>
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+</div>
+<button class="w-full h-12 rounded-xl bg-surface-container hover:bg-surface-container-high active:scale-[0.99] text-primary font-label-md text-label-md flex items-center justify-center gap-2 transition-all shadow-sm" id="btn-load-more" onclick="handleLoadMore()">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+<span>Carregar mais transações</span>
+</button>
+</div>
+<!-- Banner / Toast de Confirmação Flutuante -->
+<div class="fixed bottom-20 left-4 right-4 z-40 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none" id="toast-notification">
+<div class="bg-inverse-surface text-inverse-on-surface p-3.5 rounded-xl shadow-2xl flex items-center justify-between gap-3">
+<div class="flex items-center gap-2.5 min-w-0">
+<span class="material-symbols-outlined text-secondary text-[22px]" id="toast-icon">check_circle</span>
+<span class="font-body-md text-body-md truncate" id="toast-message">Transação atualizada com sucesso!</span>
+</div>
+<button class="text-inverse-on-surface/70 hover:text-inverse-on-surface font-label-sm text-label-sm px-2 py-1" onclick="dismissToast()">OK</button>
+</div>
+</div>
+</div>
+<script>
+  let activeMenuId = null;
+
+  function toggleMenu(menuId, event) {
+    if (event) event.stopPropagation();
+    const targetMenu = document.getElementById(menuId);
+    
+    if (activeMenuId && activeMenuId !== menuId) {
+      const prevMenu = document.getElementById(activeMenuId);
+      if (prevMenu) prevMenu.classList.add('hidden');
+    }
+
+    if (targetMenu) {
+      targetMenu.classList.toggle('hidden');
+      activeMenuId = targetMenu.classList.contains('hidden') ? null : menuId;
+    }
+  }
+
+  // Fecha menus ao clicar fora
+  document.addEventListener('click', (e) => {
+    if (activeMenuId) {
+      const menu = document.getElementById(activeMenuId);
+      if (menu && !menu.contains(e.target)) {
+        menu.classList.add('hidden');
+        activeMenuId = null;
+      }
+    }
+  });
+
+  function showToast(message, isSuccess = true) {
+    const toast = document.getElementById('toast-notification');
+    const toastMsg = document.getElementById('toast-message');
+    const toastIcon = document.getElementById('toast-icon');
+
+    toastMsg.textContent = message;
+    if (isSuccess) {
+      toastIcon.textContent = 'check_circle';
+      toastIcon.className = 'material-symbols-outlined text-secondary text-[22px]';
+    } else {
+      toastIcon.textContent = 'delete_outline';
+      toastIcon.className = 'material-symbols-outlined text-tertiary-container text-[22px]';
+    }
+
+    toast.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+    toast.classList.add('translate-y-0', 'opacity-100');
+
+    setTimeout(() => {
+      dismissToast();
+    }, 3800);
+  }
+
+  function dismissToast() {
+    const toast = document.getElementById('toast-notification');
+    if (toast) {
+      toast.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+    }
+  }
+
+  function markAsPaid(txId, menuId) {
+    toggleMenu(menuId);
+    const badge = document.getElementById(`badge-${txId}`);
+    const val = document.getElementById(`val-${txId}`);
+
+    if (badge) {
+      badge.className = "inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-secondary/10 text-secondary font-label-sm text-[11px]";
+      badge.innerHTML = `<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">check_circle</span> Pago`;
+    }
+
+    if (val) {
+      val.className = "font-currency-md text-currency-md text-tertiary font-bold";
+      val.textContent = "-R$ 1.630,00";
+    }
+
+    showToast("Transação 'Aluguel' marcada como Paga!");
+  }
+
+  function deleteTransaction(txId, menuId) {
+    toggleMenu(menuId);
+    const item = document.querySelector(`[data-id="${txId}"]`);
+    if (item) {
+      item.style.transition = "all 0.3s ease-out";
+      item.style.opacity = "0";
+      item.style.transform = "translateX(-20px)";
+      setTimeout(() => {
+        item.remove();
+        showToast("Transação removida com sucesso.", false);
+      }, 300);
+    }
+  }
+
+  function editTransaction(name, menuId) {
+    toggleMenu(menuId);
+    showToast(`Modo edição: "${name}" aberto.`);
+  }
+
+  function handleLoadMore() {
+    const btn = document.getElementById('btn-load-more');
+    const paginationText = document.getElementById('pagination-text');
+    
+    btn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin">refresh</span> Carregando extrato...`;
+    btn.disabled = true;
+
+    setTimeout(() => {
+      btn.innerHTML = `<span class="material-symbols-outlined text-[20px]">check</span> Extrato completo`;
+      paginationText.textContent = "Mostrando 42 de 42 transações";
+      btn.classList.add('opacity-70');
+      showToast("Todas as 42 transações foram sincronizadas.");
+    }, 900);
+  }
+
+  // Interatividade de Chips
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      if (!this.querySelector('.text-\\[14px\\]')) {
+        document.querySelectorAll('.filter-chip').forEach(c => {
+          if (!c.querySelector('.text-\\[14px\\]')) {
+            c.classList.remove('bg-primary-container', 'text-on-primary', 'shadow-sm');
+            c.classList.add('bg-surface-container', 'text-on-surface-variant');
+          }
+        });
+        this.classList.remove('bg-surface-container', 'text-on-surface-variant');
+        this.classList.add('bg-primary-container', 'text-on-primary', 'shadow-sm');
+      }
+    });
+  });
+
+  // Botão Exportar CSV
+  document.getElementById('btn-export-csv').addEventListener('click', () => {
+    showToast("Extrato CSV pronto para download!");
+  });
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/85 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.05)]" data-active-classes="text-primary font-semibold"><div class="h-16 px-space-xs grid grid-cols-5 items-center"><a class="flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[24px]">dashboard</span><span class="font-label-sm text-label-sm">Visão</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="transacoes" href="#"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="font-label-sm text-label-sm">Extrato</span></a><div class="flex items-center justify-center"><a aria-label="Nova Transação" class="flex items-center justify-center w-12 h-12 rounded-full bg-primary-container text-on-primary shadow-md shadow-primary-container/30 active:scale-95 transition-transform" data-path="nova-transacao" href="#"><span class="material-symbols-outlined text-[28px]">add</span></a></div><a class="flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="orcamentos" href="#"><span class="material-symbols-outlined text-[24px]">savings</span><span class="font-label-sm text-label-sm">Metas</span></a><a class="flex flex-col items-center justify-center gap-0.5 min-h-[44px] py-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="categorias" href="#"><span class="material-symbols-outlined text-[24px]">category</span><span class="font-label-sm text-label-sm">Categorias</span></a></div></nav></body></html>

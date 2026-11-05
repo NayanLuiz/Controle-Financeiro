@@ -49,6 +49,7 @@ export function TransactionModal({
   const [isSaving, setIsSaving] = useState(false);
 
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -172,6 +173,14 @@ export function TransactionModal({
     setCategoryId(firstOption ? firstOption.id : '');
   };
 
+  const quickAddAmount = (reais: number) => {
+    setAmountCents((prev) => prev + reais * 100);
+  };
+
+  const clearAmount = () => {
+    setAmountCents(0);
+  };
+
   if (!isOpen) {
     return null;
   }
@@ -235,7 +244,9 @@ export function TransactionModal({
         className="modal-panel"
         aria-modal="true"
         aria-labelledby="tx-modal-title"
+        style={{ maxWidth: '480px', width: '100%', padding: '1.25rem' }}
       >
+        {/* Stitch: Top Navigation & Action Row */}
         <div
           style={{
             display: 'flex',
@@ -244,17 +255,53 @@ export function TransactionModal({
             marginBottom: '1rem',
           }}
         >
-          <h2 id="tx-modal-title" style={{ margin: 0, fontSize: '1.25rem' }}>
-            {editingTransaction ? 'Editar Transação' : 'Nova Transação'}
-          </h2>
           <button
             type="button"
             className="btn btn-secondary"
-            style={{ minHeight: '36px', padding: '0.25rem 0.65rem' }}
+            style={{ minHeight: '36px', padding: '0.35rem 0.75rem', borderRadius: '9999px' }}
             onClick={onClose}
-            aria-label="Fechar modal"
           >
-            ✕
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              close
+            </span>
+            <span>Cancelar</span>
+          </button>
+
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.2rem 0.65rem',
+              borderRadius: '9999px',
+              background: 'var(--color-surface-low)',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              color: 'var(--color-text-secondary)',
+            }}
+          >
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--color-secondary)',
+              }}
+            />
+            <span>Fluxo Rápido</span>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ minHeight: '36px', padding: '0.35rem 0.85rem', borderRadius: '9999px' }}
+            disabled={isSaving}
+            onClick={() => formRef.current?.requestSubmit()}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              check
+            </span>
+            <span>Salvar</span>
           </button>
         </div>
 
@@ -264,103 +311,286 @@ export function TransactionModal({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate style={{ display: 'grid', gap: '1rem' }}>
-          <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-            <legend className="field-label" style={{ marginBottom: '0.25rem' }}>
-              Tipo de lançamento
-            </legend>
-            <div className="segmented-control">
-              <button
-                type="button"
-                className="segmented-btn"
-                aria-pressed={type === 'EXPENSE'}
-                onClick={() => handleTypeChange('EXPENSE')}
-              >
-                Despesa
-              </button>
-              <button
-                type="button"
-                className="segmented-btn"
-                aria-pressed={type === 'INCOME'}
-                onClick={() => handleTypeChange('INCOME')}
-              >
-                Receita
-              </button>
-            </div>
-          </fieldset>
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          noValidate
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        >
+          <h2 id="tx-modal-title" className="sr-only">
+            {editingTransaction ? 'Editar Transação' : 'Nova Transação'}
+          </h2>
 
-          <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-            <legend className="field-label" style={{ marginBottom: '0.25rem' }}>
-              Status de pagamento
-            </legend>
-            <div className="segmented-control">
-              <button
-                type="button"
-                className="segmented-btn"
-                aria-pressed={status === 'PAID'}
-                onClick={() => setStatus('PAID')}
-              >
-                <span aria-hidden="true">✓</span> {type === 'INCOME' ? 'Recebido' : 'Pago'}
-              </button>
-              <button
-                type="button"
-                className="segmented-btn"
-                aria-pressed={status === 'PENDING'}
-                onClick={() => setStatus('PENDING')}
-              >
-                <span aria-hidden="true">⏱</span> Pendente
-              </button>
-            </div>
-          </fieldset>
-
-          <div className="field-group">
-            <label htmlFor="tx-amount-input" className="field-label">
-              Valor (R$)
-            </label>
-            <input
-              ref={amountInputRef}
-              id="tx-amount-input"
-              type="text"
-              inputMode="numeric"
-              className="input-control input-hero-amount tabular-nums"
-              placeholder="R$ 0,00"
-              value={formattedAmount}
-              onChange={(event) => {
-                setAmountCents(parseDigitsToCents(event.target.value));
+          {/* Stitch: Segmented Control Despesa vs Receita */}
+          <div
+            style={{
+              display: 'flex',
+              background: 'var(--color-surface-container)',
+              padding: '4px',
+              borderRadius: '14px',
+            }}
+          >
+            <button
+              type="button"
+              style={{
+                flex: 1,
+                padding: '0.65rem 1rem',
+                borderRadius: '10px',
+                border: 0,
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: type === 'EXPENSE' ? 'var(--color-tertiary-container)' : 'transparent',
+                color: type === 'EXPENSE' ? '#ffffff' : 'var(--color-on-surface-variant)',
+                boxShadow: type === 'EXPENSE' ? 'var(--shadow-sm)' : 'none',
               }}
-              aria-invalid={Boolean(fieldErrors.amountCents)}
-              aria-describedby={fieldErrors.amountCents ? 'tx-amount-error' : undefined}
-            />
+              onClick={() => handleTypeChange('EXPENSE')}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                arrow_downward
+              </span>
+              <span>Despesa</span>
+            </button>
+            <button
+              type="button"
+              style={{
+                flex: 1,
+                padding: '0.65rem 1rem',
+                borderRadius: '10px',
+                border: 0,
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: type === 'INCOME' ? 'var(--color-secondary)' : 'transparent',
+                color: type === 'INCOME' ? '#ffffff' : 'var(--color-on-surface-variant)',
+                boxShadow: type === 'INCOME' ? 'var(--shadow-sm)' : 'none',
+              }}
+              onClick={() => handleTypeChange('INCOME')}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                arrow_upward
+              </span>
+              <span>Receita</span>
+            </button>
+          </div>
+
+          {/* Stitch: Hero Amount Input with Quick Add Buttons */}
+          <div className="stitch-hero-amount">
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--color-text-secondary)',
+                display: 'block',
+                marginBottom: '0.25rem',
+              }}
+            >
+              Valor do Lançamento
+            </span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              <label htmlFor="tx-amount-input" className="sr-only">
+                Valor do Lançamento em Reais
+              </label>
+              <span
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text-muted)',
+                  userSelect: 'none',
+                }}
+              >
+                R$
+              </span>
+              <input
+                ref={amountInputRef}
+                id="tx-amount-input"
+                type="text"
+                inputMode="numeric"
+                className="tabular-nums"
+                style={{
+                  width: '240px',
+                  background: 'transparent',
+                  border: 0,
+                  textAlign: 'center',
+                  fontSize: '2rem',
+                  fontWeight: 800,
+                  color: 'var(--color-on-surface)',
+                  outline: 'none',
+                }}
+                placeholder="0,00"
+                value={formattedAmount ? formattedAmount.replace('R$', '').trim() : ''}
+                onChange={(event) => {
+                  setAmountCents(parseDigitsToCents(event.target.value));
+                }}
+                aria-invalid={Boolean(fieldErrors.amountCents)}
+                aria-describedby={fieldErrors.amountCents ? 'tx-amount-error' : undefined}
+              />
+            </div>
             {fieldErrors.amountCents && (
-              <span id="tx-amount-error" className="field-error" role="alert">
+              <span
+                id="tx-amount-error"
+                style={{
+                  color: 'var(--color-tertiary-container)',
+                  fontSize: '0.75rem',
+                  marginTop: '0.25rem',
+                  display: 'block',
+                }}
+                role="alert"
+              >
                 {fieldErrors.amountCents}
+              </span>
+            )}
+
+            {/* Quick Add Buttons */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                marginTop: '0.75rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button type="button" className="stitch-quick-btn" onClick={() => quickAddAmount(10)}>
+                + R$ 10
+              </button>
+              <button type="button" className="stitch-quick-btn" onClick={() => quickAddAmount(50)}>
+                + R$ 50
+              </button>
+              <button
+                type="button"
+                className="stitch-quick-btn"
+                onClick={() => quickAddAmount(100)}
+              >
+                + R$ 100
+              </button>
+              <button
+                type="button"
+                className="stitch-quick-btn"
+                onClick={clearAmount}
+                title="Limpar valor"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                  backspace
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Descrição */}
+          <div className="field-group">
+            <label
+              htmlFor="tx-description-input"
+              className="field-label"
+              style={{ fontSize: '0.85rem' }}
+            >
+              Descrição
+            </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  color: 'var(--color-outline)',
+                  fontSize: '20px',
+                  pointerEvents: 'none',
+                }}
+              >
+                edit_note
+              </span>
+              <input
+                id="tx-description-input"
+                type="text"
+                maxLength={120}
+                className="input-control"
+                style={{ width: '100%', paddingLeft: '2.5rem', height: '46px' }}
+                placeholder="Ex.: Almoço de negócios, Supermercado..."
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                aria-invalid={Boolean(fieldErrors.description)}
+                aria-describedby={fieldErrors.description ? 'tx-description-error' : undefined}
+              />
+            </div>
+            {fieldErrors.description && (
+              <span id="tx-description-error" className="field-error" role="alert">
+                {fieldErrors.description}
               </span>
             )}
           </div>
 
-          <fieldset
-            className="field-group"
-            style={{ border: 'none', padding: 0, margin: 0 }}
-            aria-describedby={fieldErrors.categoryId ? 'tx-category-error' : undefined}
-          >
-            <legend className="field-label" style={{ marginBottom: '0.25rem' }}>
-              Categoria
-            </legend>
-            <div className="chips-grid">
+          {/* Categoria (Grid de Chips do Stitch) */}
+          <div className="field-group">
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.35rem',
+              }}
+            >
+              <span className="field-label" style={{ fontSize: '0.85rem', margin: 0 }}>
+                Categoria
+              </span>
+              <span
+                style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}
+                aria-label="Categoria selecionada"
+              >
+                {(() => {
+                  const selected = availableCategories.find((c) => c.id === categoryId);
+                  return selected ? `Selecionada: ${selected.name}` : 'Selecione';
+                })()}
+              </span>
+            </div>
+            <div className="stitch-cat-grid">
               {availableCategories.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
-                  className="chip-btn"
-                  aria-pressed={categoryId === cat.id}
+                  className={`stitch-cat-chip-btn ${categoryId === cat.id ? 'selected' : ''}`}
                   onClick={() => setCategoryId(cat.id)}
                 >
                   <span
-                    className="category-dot"
-                    style={{ backgroundColor: cat.color }}
-                    aria-hidden="true"
-                  />
-                  <span>
+                    className="material-symbols-outlined"
+                    style={{
+                      fontSize: '20px',
+                      marginBottom: '2px',
+                      color:
+                        categoryId === cat.id ? '#ffffff' : cat.color || 'var(--color-primary)',
+                    }}
+                  >
+                    {type === 'INCOME' ? 'payments' : 'category'}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '100%',
+                    }}
+                  >
                     {cat.name}
                     {cat.isArchived ? ' (Arquivada)' : ''}
                   </span>
@@ -372,30 +602,9 @@ export function TransactionModal({
                 {fieldErrors.categoryId}
               </span>
             )}
-          </fieldset>
-
-          <div className="field-group">
-            <label htmlFor="tx-description-input" className="field-label">
-              Descrição
-            </label>
-            <input
-              id="tx-description-input"
-              type="text"
-              maxLength={120}
-              className="input-control"
-              placeholder="Ex.: Almoço executivo, Supermercado..."
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              aria-invalid={Boolean(fieldErrors.description)}
-              aria-describedby={fieldErrors.description ? 'tx-description-error' : undefined}
-            />
-            {fieldErrors.description && (
-              <span id="tx-description-error" className="field-error" role="alert">
-                {fieldErrors.description}
-              </span>
-            )}
           </div>
 
+          {/* Data de Competência / Vencimento */}
           <div className="field-group">
             <div
               style={{
@@ -405,37 +614,58 @@ export function TransactionModal({
                 gap: '0.5rem',
               }}
             >
-              <label htmlFor="tx-date-input" className="field-label">
-                Data do lançamento
+              <label
+                htmlFor="tx-date-input"
+                className="field-label"
+                style={{ fontSize: '0.85rem' }}
+              >
+                Data de Competência
               </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  style={{ minHeight: '30px', padding: '0.15rem 0.55rem', fontSize: '0.75rem' }}
-                  onClick={() => handleDateChange(getTodayCivilDate())}
-                >
-                  Hoje
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ minHeight: '30px', padding: '0.15rem 0.55rem', fontSize: '0.75rem' }}
+                  className="stitch-quick-btn"
                   onClick={() => handleDateChange(getYesterdayCivilDate())}
                 >
                   Ontem
                 </button>
+                <button
+                  type="button"
+                  className="stitch-quick-btn"
+                  style={{
+                    background: 'var(--color-primary-fixed)',
+                    color: 'var(--color-on-primary-fixed)',
+                  }}
+                  onClick={() => handleDateChange(getTodayCivilDate())}
+                >
+                  Hoje
+                </button>
               </div>
             </div>
-            <input
-              id="tx-date-input"
-              type="date"
-              className="input-control tabular-nums"
-              value={date}
-              onChange={(event) => handleDateChange(event.target.value)}
-              aria-invalid={Boolean(fieldErrors.date)}
-              aria-describedby={fieldErrors.date ? 'tx-date-error' : undefined}
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  color: 'var(--color-outline)',
+                  fontSize: '20px',
+                  pointerEvents: 'none',
+                }}
+              >
+                calendar_today
+              </span>
+              <input
+                id="tx-date-input"
+                type="date"
+                className="input-control tabular-nums"
+                style={{ width: '100%', paddingLeft: '2.5rem', height: '46px' }}
+                value={date}
+                onChange={(event) => handleDateChange(event.target.value)}
+                aria-invalid={Boolean(fieldErrors.date)}
+                aria-describedby={fieldErrors.date ? 'tx-date-error' : undefined}
+              />
+            </div>
             {fieldErrors.date && (
               <span id="tx-date-error" className="field-error" role="alert">
                 {fieldErrors.date}
@@ -443,21 +673,135 @@ export function TransactionModal({
             )}
           </div>
 
+          {/* Stitch: Status de Pagamento */}
+          <div className="field-group">
+            <span className="field-label" style={{ fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+              Já foi pago?
+            </span>
+            <div
+              style={{
+                display: 'flex',
+                background: 'var(--color-surface-container)',
+                padding: '4px',
+                borderRadius: '12px',
+                gap: '4px',
+              }}
+            >
+              <button
+                type="button"
+                aria-pressed={status === 'PAID'}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 0.75rem',
+                  borderRadius: '10px',
+                  border: 0,
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                  cursor: 'pointer',
+                  background: status === 'PAID' ? 'var(--color-secondary)' : 'transparent',
+                  color: status === 'PAID' ? '#ffffff' : 'var(--color-on-surface-variant)',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => setStatus('PAID')}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: '16px',
+                    fontVariationSettings: status === 'PAID' ? "'FILL' 1" : undefined,
+                  }}
+                >
+                  check_circle
+                </span>
+                <span>{type === 'INCOME' ? 'Recebido' : 'Pago / Liquidado'}</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={status === 'PENDING'}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 0.75rem',
+                  borderRadius: '10px',
+                  border: 0,
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                  cursor: 'pointer',
+                  background:
+                    status === 'PENDING' ? 'var(--color-tertiary-container)' : 'transparent',
+                  color: status === 'PENDING' ? '#ffffff' : 'var(--color-on-surface-variant)',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => setStatus('PENDING')}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                  schedule
+                </span>
+                <span>Pendente</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Stitch: Recorrência Mensal */}
           {!editingTransaction && (
-            <div className="recurring-section-box">
+            <div
+              style={{
+                background: 'var(--color-surface-low)',
+                borderRadius: '14px',
+                padding: '0.85rem 1rem',
+              }}
+            >
               <label
                 htmlFor="tx-is-recurring"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.65rem',
+                  justifyContent: 'space-between',
                   cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  color: 'var(--color-text-primary)',
                   userSelect: 'none',
                 }}
               >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: 'var(--color-primary-fixed)',
+                      color: 'var(--color-on-primary-fixed)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                      sync
+                    </span>
+                  </div>
+                  <div>
+                    <span
+                      style={{
+                        display: 'block',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        color: 'var(--color-on-surface)',
+                      }}
+                    >
+                      Conta recorrente mensal
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                      Repetir lançamento todo mês
+                    </span>
+                  </div>
+                </div>
+
                 <input
                   type="checkbox"
                   id="tx-is-recurring"
@@ -469,14 +813,17 @@ export function TransactionModal({
                       setRecurrenceEndDate(addYearsCivilDate(date, 1));
                     }
                   }}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  style={{ width: '20px', height: '20px', accentColor: 'var(--color-primary)' }}
                 />
-                <span>🔁 Conta recorrente mensal (repetir todos os meses)</span>
               </label>
 
               {isRecurring && (
-                <div style={{ marginTop: '0.85rem', display: 'grid', gap: '0.5rem' }}>
-                  <label htmlFor="tx-recurrence-end-date" className="field-label">
+                <div style={{ marginTop: '0.75rem', display: 'grid', gap: '0.35rem' }}>
+                  <label
+                    htmlFor="tx-recurrence-end-date"
+                    className="field-label"
+                    style={{ fontSize: '0.75rem' }}
+                  >
                     Recorrente até (padrão: 1 ano à frente):
                   </label>
                   <input
@@ -489,8 +836,8 @@ export function TransactionModal({
                   />
                   <p
                     style={{
-                      margin: 0,
-                      fontSize: '0.8125rem',
+                      margin: '0.2rem 0 0',
+                      fontSize: '0.72rem',
                       color: 'var(--color-text-secondary)',
                     }}
                   >
@@ -505,24 +852,24 @@ export function TransactionModal({
             </div>
           )}
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '0.75rem',
-              marginTop: '0.5rem',
-            }}
-          >
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancelar
-            </button>
+          {/* Stitch: Botão de Salvar Lançamento no Rodapé */}
+          <div style={{ marginTop: '0.5rem' }}>
             <button
               type="submit"
               className="btn btn-primary"
+              style={{
+                width: '100%',
+                height: '48px',
+                borderRadius: '14px',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+              }}
               disabled={isSaving}
               aria-busy={isSaving}
             >
-              {isSaving ? 'Salvando...' : 'Salvar transação'}
+              {isSaving
+                ? 'Salvando...'
+                : `Salvar Lançamento ${formattedAmount ? `(${formattedAmount})` : ''}`}
             </button>
           </div>
         </form>

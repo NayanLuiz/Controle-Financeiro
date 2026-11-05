@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-dim": "#d2d9f4", "outline": "#737686", "primary-fixed": "#dbe1ff", "on-tertiary-container": "#ffecea", "tertiary-container": "#d52022", "on-secondary-fixed": "#002114", "on-secondary": "#ffffff", "on-secondary-fixed-variant": "#005137", "inverse-surface": "#283044", "surface-container-highest": "#dae2fd", "secondary": "#006c4a", "surface-variant": "#dae2fd", "on-surface-variant": "#434655", "surface-container-high": "#e2e7ff", "on-error-container": "#93000a", "surface-container-lowest": "#ffffff", "secondary-container": "#82f5c1", "surface-container-low": "#f2f3ff", "primary-container": "#2563eb", "on-surface": "#131b2e", "on-background": "#131b2e", "surface": "#faf8ff", "on-tertiary-fixed-variant": "#93000b", "on-primary-container": "#eeefff", "outline-variant": "#c3c6d7", "surface-bright": "#faf8ff", "tertiary-fixed": "#ffdad6", "secondary-fixed": "#85f8c4", "on-secondary-container": "#00714e", "surface-container": "#eaedff", "secondary-fixed-dim": "#68dba9", "tertiary": "#ae0010", "on-error": "#ffffff", "error": "#ba1a1a", "error-container": "#ffdad6", "primary-fixed-dim": "#b4c5ff", "inverse-primary": "#b4c5ff", "on-primary-fixed-variant": "#003ea8", "inverse-on-surface": "#eef0ff", "tertiary-fixed-dim": "#ffb4ab", "background": "#faf8ff", "on-tertiary-fixed": "#410002", "on-tertiary": "#ffffff", "primary": "#004ac6", "surface-tint": "#0053db", "on-primary-fixed": "#00174b", "on-primary": "#ffffff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "gutter": "1.5rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter-mobile": "1rem", "space-xl": "2rem", "space-md": "1rem", "margin-mobile": "1rem", "margin": "2rem", "space-lg": "1.5rem" }, fontFamily: { "label-md": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "currency-md": ["JetBrains Mono"], "currency-xl": ["JetBrains Mono"], "headline-md": ["Plus Jakarta Sans"], "headline-xl-mobile": ["Plus Jakarta Sans"], "headline-xl": ["Plus Jakarta Sans"], "title-sm": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "currency-lg": ["JetBrains Mono"] }, fontSize: { "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "600" }], "body-sm": ["0.75rem", { "lineHeight": "1.125rem", "fontWeight": "400" }], "body-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }], "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "label-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "currency-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }], "currency-xl": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }], "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-xl-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-xl": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.025em", "fontWeight": "700" }], "title-sm": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }], "currency-lg": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "600" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;-webkit-tap-highlight-color:transparent;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 1rem);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter-mobile flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0 flex-1"><button aria-label="Voltar" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container-high/60 transition-colors -ml-2" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><img alt="FinPulse Logo" class="h-7 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1Uzilzmw8fDu_LLf4TpEOpTdSCZxRFROy44X7OazYN_P1-L-M9PQ36pNz_9IN4y-g4KWDl1LQLfBNaa7X_NYsEmLKWphr3I1jNEM1C36hA97K1S8Nd0vyxfr40SbRThIHyAYRO1pBfiXyo800mPNNBH1PnOJr9wIMUL7pkUWbDzyv6JtIDc6fmzE_dfVbxn5giOTTmb8cTv6V2JVbMxPn4uapTMuUoggDAdAxVIThG1"/><h1 class="font-title-sm text-title-sm text-on-surface truncate">Nova Transação</h1></div><div class="flex items-center flex-shrink-0"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdyDXYJ9UMdYIRUMxVLtjAAcNAzSl3u76GrNt1rjOGg652ZlnG6JanNT1ZAMBH9c6sLvpHeT82DuI3ZkQDPPvOltNL8MrZsZqp36Krxuw34qmZODfuRoAGEBhknkt0FZiua0lkMVeVQ86mYdlCdsbQi7jC4MkyXQ-uGWIHHKc_1m4UAQRydaB7VipbuM1elIS_B3Dfw8sLCCA_mczwLN0uHQ4Wi-54EXT3Z7Bw6E_c"/></div></div></header><main class="flex-1 w-full bg-surface pt-16 pb-safe px-gutter-mobile"><div class="flex flex-col w-full pb-28">
+<!-- Top Navigation & Action Row (Integrated below shell bar) -->
+<div class="flex items-center justify-between py-space-sm mb-space-sm">
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-surface-container-high/60 text-on-surface hover:bg-surface-container-highest transition-colors active:scale-95 text-label-md font-label-md" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+<span>Cancelar</span>
+</button>
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm">
+<span class="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+      Fluxo Rápido
+    </div>
+<button class="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-on-primary shadow-sm active:scale-95 transition-all font-label-md text-label-md" id="quickSaveTopBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">check</span>
+<span>Salvar</span>
+</button>
+</div>
+<!-- Primary Type Segmented Control (Despesa / Receita) -->
+<div class="p-1 rounded-2xl bg-surface-container flex items-center gap-1 mb-space-md shadow-sm">
+<button class="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-label-md text-label-md transition-all duration-200 bg-tertiary-container text-on-tertiary-container shadow-sm" id="typeExpenseBtn" type="button">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">arrow_downward</span>
+<span>Despesa</span>
+</button>
+<button class="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-on-surface" id="typeIncomeBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+<span>Receita</span>
+</button>
+</div>
+<!-- Big Amount Hero Input with Financial Keypad Feel -->
+<div class="p-space-lg rounded-2xl bg-surface-container-lowest shadow-sm mb-space-md flex flex-col items-center justify-center text-center relative overflow-hidden">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-on-surface-variant mb-1">Valor do Lançamento</span>
+<div class="flex items-baseline justify-center w-full gap-2 text-on-surface">
+<span class="font-currency-xl text-currency-xl text-on-surface-variant/70 font-semibold select-none">R$</span>
+<input class="w-48 bg-transparent text-center font-currency-xl text-currency-xl font-bold text-on-surface focus:outline-none placeholder:text-outline-variant caret-primary" id="amountInput" inputmode="numeric" placeholder="0,00" type="text" value="145,90"/>
+</div>
+<div class="flex items-center gap-2 mt-3">
+<button class="px-3 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant active:scale-95 transition-transform" onclick="quickAddAmount(10)" type="button">+ R$ 10</button>
+<button class="px-3 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant active:scale-95 transition-transform" onclick="quickAddAmount(50)" type="button">+ R$ 50</button>
+<button class="px-3 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant active:scale-95 transition-transform" onclick="quickAddAmount(100)" type="button">+ R$ 100</button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container text-outline hover:text-error active:scale-95 transition-colors" onclick="clearAmount()" title="Limpar" type="button">
+<span class="material-symbols-outlined text-[16px] block">backspace</span>
+</button>
+</div>
+</div>
+<!-- Main Form Card -->
+<div class="flex flex-col gap-space-md">
+<!-- Descrição -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-sm">
+<label class="block font-label-md text-label-md text-on-surface mb-2" for="descriptionInput">Descrição</label>
+<div class="flex items-center gap-2 px-3.5 py-3 rounded-xl bg-surface-container-low focus-within:bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<span class="material-symbols-outlined text-outline text-[20px]">edit_note</span>
+<input class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none" id="descriptionInput" placeholder="Ex: Almoço de negócios, Mercado..." type="text" value="Almoço de negócios"/>
+</div>
+</div>
+<!-- Categoria (Grid de Chips Rápidos) -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<label class="font-label-md text-label-md text-on-surface">Categoria</label>
+<span class="font-label-sm text-label-sm text-primary font-semibold" id="selectedCategoryLabel">Alimentação</span>
+</div>
+<div class="grid grid-cols-4 gap-2" id="categoryChips">
+<!-- Chip: Alimentação (Selected) -->
+<button class="cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-primary text-on-primary transition-all active:scale-95" data-cat="Alimentação" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+<span class="font-label-sm text-label-sm truncate w-full text-center">Alimentação</span>
+</button>
+<!-- Chip: Moradia -->
+<button class="cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container transition-all active:scale-95" data-cat="Moradia" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1 text-on-surface-variant">home</span>
+<span class="font-label-sm text-label-sm truncate w-full text-center">Moradia</span>
+</button>
+<!-- Chip: Transporte -->
+<button class="cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container transition-all active:scale-95" data-cat="Transporte" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1 text-on-surface-variant">directions_car</span>
+<span class="font-label-sm text-label-sm truncate w-full text-center">Transporte</span>
+</button>
+<!-- Chip: Lazer -->
+<button class="cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container transition-all active:scale-95" data-cat="Lazer" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1 text-on-surface-variant">sports_esports</span>
+<span class="font-label-sm text-label-sm truncate w-full text-center">Lazer</span>
+</button>
+<!-- Chip: Saúde -->
+<button class="cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container transition-all active:scale-95" data-cat="Saúde" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1 text-on-surface-variant">medical_services</span>
+<span class="font-label-sm text-label-sm truncate w-full text-center">Saúde</span>
+</button>
+<!-- Chip: Salário -->
+<button class="cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container transition-all active:scale-95" data-cat="Salário" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1 text-on-surface-variant">payments</span>
+<span class="font-label-sm text-label-sm truncate w-full text-center">Salário</span>
+</button>
+<!-- Chip: Compras -->
+<button class="cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container transition-all active:scale-95" data-cat="Compras" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1 text-on-surface-variant">shopping_bag</span>
+<span class="font-label-sm text-label-sm truncate w-full text-center">Compras</span>
+</button>
+<!-- Chip: Outros -->
+<button class="cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container transition-all active:scale-95" data-cat="Outros" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1 text-on-surface-variant">more_horiz</span>
+<span class="font-label-sm text-label-sm truncate w-full text-center">Outros</span>
+</button>
+</div>
+</div>
+<!-- Data de Competência / Vencimento -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<label class="font-label-md text-label-md text-on-surface" for="dateInput">Data de Competência</label>
+<div class="flex items-center gap-1.5">
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container active:scale-95 transition-all" onclick="setDatePreset('ontem')" type="button">Ontem</button>
+<button class="px-2.5 py-1 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm hover:bg-primary-fixed-dim active:scale-95 transition-all" onclick="setDatePreset('hoje')" type="button">Hoje</button>
+</div>
+</div>
+<div class="flex items-center gap-2 px-3.5 py-3 rounded-xl bg-surface-container-low">
+<span class="material-symbols-outlined text-outline text-[20px]">calendar_today</span>
+<input class="w-full bg-transparent font-currency-md text-currency-md text-on-surface placeholder:text-outline focus:outline-none" id="dateInput" placeholder="DD/MM/AAAA" type="text" value="24/10/2024"/>
+</div>
+</div>
+<!-- Status de Pagamento (Destaque Crucial) -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<div>
+<span class="font-label-md text-label-md text-on-surface block">Já foi pago?</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Indica liquidação imediata ou agendamento</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-surface-container">
+<button class="py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md bg-secondary text-on-secondary shadow-sm transition-all duration-200" id="statusPaidBtn" type="button">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>Pago / Liquidado</span>
+</button>
+<button class="py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all duration-200" id="statusPendingBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span>Pendente</span>
+</button>
+</div>
+</div>
+<!-- Recorrência Mensal -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-sm transition-all">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">Repetir transação todo mês</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Lançamento recorrente automático</span>
+</div>
+</div>
+<!-- Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" id="recurrenceToggle" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Recurrence Sub-fields (revealed when checked) -->
+<div class="hidden mt-4 pt-4 border-t-0 flex flex-col gap-3" id="recurrenceOptions">
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Frequência</span>
+<span class="font-label-md text-label-md text-primary font-semibold flex items-center gap-1">
+<span>Mensal</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Duração</span>
+<div class="flex items-center gap-1.5">
+<button class="px-2.5 py-1 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm" id="recIndefiniteBtn" type="button">Indefinido</button>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm" id="recUntilDateBtn" type="button">Até data...</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Bottom Confirmation Bar -->
+<div class="fixed bottom-0 left-0 right-0 p-gutter-mobile bg-surface/90 backdrop-blur-md z-40 shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
+<div class="max-w-md mx-auto">
+<button class="w-full min-h-[52px] py-3.5 px-6 rounded-2xl bg-primary text-on-primary font-title-sm text-title-sm flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-all" id="saveTransactionBtn" type="button">
+<span class="material-symbols-outlined text-[22px]">check_circle</span>
+<span id="saveBtnLabel">Salvar Lançamento (R$ 145,90)</span>
+</button>
+</div>
+</div>
+<!-- Toast Notification Modal (Micro-interaction) -->
+<div class="fixed top-20 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full bg-inverse-surface text-inverse-on-surface flex items-center gap-2.5 shadow-xl transition-all duration-300 opacity-0 pointer-events-none translate-y-2 z-50" id="toastNotification">
+<span class="material-symbols-outlined text-secondary-fixed text-[20px]">check</span>
+<span class="font-label-md text-label-md" id="toastMessage">Transação registrada com sucesso!</span>
+</div>
+</div>
+<script>
+  // State
+  let currentType = 'expense'; // 'expense' | 'income'
+  let currentStatus = 'paid'; // 'paid' | 'pending'
+  let currentAmount = '145,90';
+
+  const amountInput = document.getElementById('amountInput');
+  const saveBtnLabel = document.getElementById('saveBtnLabel');
+  const typeExpenseBtn = document.getElementById('typeExpenseBtn');
+  const typeIncomeBtn = document.getElementById('typeIncomeBtn');
+  const statusPaidBtn = document.getElementById('statusPaidBtn');
+  const statusPendingBtn = document.getElementById('statusPendingBtn');
+  const recurrenceToggle = document.getElementById('recurrenceToggle');
+  const recurrenceOptions = document.getElementById('recurrenceOptions');
+  const selectedCategoryLabel = document.getElementById('selectedCategoryLabel');
+  const categoryChips = document.querySelectorAll('.cat-chip');
+
+  function updateSaveLabel() {
+    saveBtnLabel.textContent = `Salvar Lançamento (R$ ${amountInput.value || '0,00'})`;
+  }
+
+  // Currency input formatting & live sync
+  amountInput.addEventListener('input', (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (!val) {
+      amountInput.value = '0,00';
+    } else {
+      let num = (parseInt(val, 10) / 100).toFixed(2);
+      amountInput.value = num.replace('.', ',');
+    }
+    updateSaveLabel();
+  });
+
+  function quickAddAmount(increment) {
+    let current = parseFloat(amountInput.value.replace(',', '.')) || 0;
+    let next = (current + increment).toFixed(2);
+    amountInput.value = next.replace('.', ',');
+    updateSaveLabel();
+  }
+
+  function clearAmount() {
+    amountInput.value = '0,00';
+    updateSaveLabel();
+  }
+
+  // Type Selector Toggle (Despesa / Receita)
+  typeExpenseBtn.addEventListener('click', () => {
+    currentType = 'expense';
+    typeExpenseBtn.className = "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-label-md text-label-md transition-all duration-200 bg-tertiary-container text-on-tertiary-container shadow-sm";
+    typeExpenseBtn.querySelector('.material-symbols-outlined').style.fontVariationSettings = "'FILL' 1";
+    typeIncomeBtn.className = "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-on-surface";
+    typeIncomeBtn.querySelector('.material-symbols-outlined').style.fontVariationSettings = "";
+  });
+
+  typeIncomeBtn.addEventListener('click', () => {
+    currentType = 'income';
+    typeIncomeBtn.className = "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-label-md text-label-md transition-all duration-200 bg-secondary text-on-secondary shadow-sm";
+    typeIncomeBtn.querySelector('.material-symbols-outlined').style.fontVariationSettings = "'FILL' 1";
+    typeExpenseBtn.className = "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-on-surface";
+    typeExpenseBtn.querySelector('.material-symbols-outlined').style.fontVariationSettings = "";
+  });
+
+  // Status Selector (Pago vs Pendente)
+  statusPaidBtn.addEventListener('click', () => {
+    currentStatus = 'paid';
+    statusPaidBtn.className = "py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md bg-secondary text-on-secondary shadow-sm transition-all duration-200";
+    statusPendingBtn.className = "py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all duration-200";
+  });
+
+  statusPendingBtn.addEventListener('click', () => {
+    currentStatus = 'pending';
+    statusPendingBtn.className = "py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md bg-surface-container-highest text-on-surface shadow-sm transition-all duration-200";
+    statusPaidBtn.className = "py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all duration-200";
+  });
+
+  // Category Selector Chips
+  categoryChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      categoryChips.forEach(c => {
+        c.className = "cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-on-surface hover:bg-surface-container transition-all active:scale-95";
+        const icon = c.querySelector('.material-symbols-outlined');
+        icon.className = "material-symbols-outlined text-[22px] mb-1 text-on-surface-variant";
+        icon.style.fontVariationSettings = "";
+      });
+      chip.className = "cat-chip flex flex-col items-center justify-center p-2.5 rounded-xl bg-primary text-on-primary transition-all active:scale-95";
+      const activeIcon = chip.querySelector('.material-symbols-outlined');
+      activeIcon.className = "material-symbols-outlined text-[22px] mb-1 text-on-primary";
+      activeIcon.style.fontVariationSettings = "'FILL' 1";
+      selectedCategoryLabel.textContent = chip.getAttribute('data-cat');
+    });
+  });
+
+  // Date Preset Helpers
+  function setDatePreset(type) {
+    const d = new Date();
+    if (type === 'ontem') {
+      d.setDate(d.getDate() - 1);
+    }
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    document.getElementById('dateInput').value = `${day}/${month}/${year}`;
+  }
+
+  // Recurrence Accordion Toggle
+  recurrenceToggle.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      recurrenceOptions.classList.remove('hidden');
+    } else {
+      recurrenceOptions.classList.add('hidden');
+    }
+  });
+
+  // Save Trigger Simulation with Toast
+  function triggerSaveFeedback() {
+    const toast = document.getElementById('toastNotification');
+    const toastMsg = document.getElementById('toastMessage');
+    toastMsg.textContent = `Lançamento de R$ ${amountInput.value} salvo!`;
+    
+    toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+    toast.classList.add('opacity-100', 'translate-y-0');
+    
+    setTimeout(() => {
+      toast.classList.remove('opacity-100', 'translate-y-0');
+      toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+    }, 2400);
+  }
+
+  document.getElementById('saveTransactionBtn').addEventListener('click', triggerSaveFeedback);
+  document.getElementById('quickSaveTopBtn').addEventListener('click', triggerSaveFeedback);
+</script></main></body></html>

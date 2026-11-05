@@ -1,0 +1,30 @@
+[
+  {
+    "id": "a36a97cb0da0461abf3eab4fd18c6401",
+    "title": "Visão Geral - FinPulse",
+    "width": "780",
+    "height": "3352",
+    "prompt": "Tela de Visão Geral (Dashboard) do FinPulse no celular (390px).\nDESTAQUE CRÍTICO: Deixar transparente a diferença entre valores consolidados (já pagos/recebidos) e pendentes.\n- Seletor de período no topo: botão de mês/ano interativo \"Outubro de 2024\" com setas anterior/próximo e atalho \"Mês atual\".\n- Card de Resumo Financeiro Geral:\n  - Saldo em Conta (Consolidado): R$ 4.820,50\n  - Projeção de Fim de Mês (Previsto com pendentes): R$ 3.190,50\n  - Aviso visual com badge âmbar: \"R$ 1.630,00 em contas a pagar até 31/10\".\n- Grade de Métricas do Mês:\n  - Receitas: Total previsto R$ 8.500,00 | Recebido: R$ 8.500,00 (100% recebido) com badge verde + ícone check.\n  - Despesas: Total previsto R$ 5.309,50 | Pago: R$ 3.679,50 | Pendente: R$ 1.630,00 (com badge âmbar de relógio e aviso sonoro visual).\n- Card de Alerta de Contas Pendentes Próximas do Vencimento:\n  - Aluguel & Condomínio: R$ 1.450,00 - Vence em 2 dias (Atenção)\n  - Internet Fibra: R$ 180,00 - Vence em 5 dias\n  - Ação rápida: Botão \"Pagar / Liquidar\" direto no card.\n- Gráfico simplificado de Evolução Diária (Receitas vs Despesas cumulativas ao longo do mês) com barra de status.\n- Gastos por Categoria (Barras de progresso com porcentagem e valores em R$): Moradia (42%), Alimentação (26%), Transporte (14%), Lazer (10%).\n- Metas Próximas do Limite (Card com status \"Atenção - 88%\" para Restaurantes & Delivery).\n- Atalho rápido \"Ver todas as transações\"."
+  },
+  {
+    "id": "a6fcb9e275704a248b8147f9c196ce1e",
+    "title": "Acesso - FinPulse",
+    "width": "780",
+    "height": "1940",
+    "prompt": "Tela de Acesso (Login e Cadastro) do FinPulse.\n- Cabeçalho com logo do FinPulse em destaque e slogan: \"Seu controle financeiro com clareza e precisão\".\n- Alternador de abas (Segmented Control): \"Entrar\" e \"Criar conta\".\n- Formulário intuitivo:\n  - Campo de Email com validação visual e ícone.\n  - Campo de Senha com botão de alternar visibilidade (olho), indicador de força da senha.\n  - Link \"Esqueceu sua senha?\".\n  - Botão principal destacado: \"Entrar no FinPulse\" (ou \"Criar minha conta\").\n  - Divisor \"ou continue com\" (Google / Apple ID rápidos).\n  - Banner informativo sutil: \"Seus dados financeiros são criptografados com segurança bancária\".\n- Microcopy humanizado e em português do Brasil (pt-BR). Estados de foco e toque nítidos."
+  },
+  {
+    "id": "538d6cfca68c4649b26cc902392cffec",
+    "title": "Transações - FinPulse",
+    "width": "780",
+    "height": "2160",
+    "prompt": "Tela de Transações (Extrato Financeiro) do FinPulse mobile.\n- Cabeçalho com barra de busca \"Buscar transação por nome...\" e botão de ação \"Exportar CSV\" com ícone de download.\n- Barra de Filtros rápidos em chips horizontais roláveis:\n  - Tipo: [Todos, Receitas (+), Despesas (-)]\n  - Status: [Todos, Concluídos (Pagos/Recebidos), Pendentes (Atenção)]\n  - Categoria: [Todas as categorias v]\n- Resumo do Extrato Filtrado:\n  - Total no filtro: -R$ 3.679,50 pago | R$ 1.630,00 pendente.\n- Lista de Transações agrupada por data (Ex: \"Hoje, 24 de Outubro\", \"Ontem, 23 de Outubro\", \"20 de Outubro\"):\n  - Cada item tem:\n    - Ícone colorido da categoria com fundo suave (Alimentação, Salário, Moradia, etc).\n    - Título da transação e categoria como subtítulo.\n    - Badges claros de status (duplo canal: cor + ícone + texto): badge verde \"Pago\" ou badge âmbar \"Pendente\".\n    - Valor monetário em R$ bem destacado (+R$ 8.500,00 em verde, -R$ 124,50 em vermelho ou cinza se pendente).\n    - Menu de contexto sutil com opções rápidas de \"Editar\", \"Marcar como Pago\" e \"Excluir\".\n- Indicador de paginação móvel clara: \"Mostrando 15 de 42 transações\" com botão \"Carregar mais\".\n- Estado de confirmação visual para ação de exclusão ou pagamento."
+  },
+  {
+    "id": "c106c291b47c485ab8250a52c18d5f28",
+    "title": "Nova Transação - FinPulse",
+    "width": "780",
+    "height": "2372",
+    "prompt": "Tela de Nova Transação do FinPulse (Fluxo Rápido e Focado em Mobile).\n- Top bar com título \"Nova Transação\", botão \"Cancelar/Fechar\" e botão \"Salvar\".\n- Seletor de Tipo Primário grande e tátil (Segmented Control com cores correspondentes):\n  - [Despesa] (ativo em coral/vermelho elegante) vs [Receita] (verde esmeralda).\n- Entrada de Valor em R$ Gigante e de Alta Legibilidade no estilo teclado financeiro:\n  - \"R$ 0,00\" com placeholder atrativo (ex: \"R$ 145,90\"), permitindo digitação ágil.\n- Campos organizados em cards limpos:\n  - Descrição: input \"Ex: Almoço de negócios, Supermercado...\"\n  - Categoria: seletor de grade/chips rápidos (Alimentação, Moradia, Transporte, Lazer, Saúde, Salário, Outros) com ícones coloridos.\n  - Data de Competência / Vencimento: input de data formatado em DD/MM/AAAA com botão rápido \"Hoje\", \"Ontem\".\n  - Status de Pagamento (Destaque crucial):\n    - Switch/Toggle claro: \"Já foi pago?\" com duas opções táteis [Pago / Liquidado] e [Pendente (Agendado)].\n- Seção de Recorrência Mensal (Ativação via Switch toggle):\n  - \"Repetir transação todo mês\" (Recorrente)\n  - Quando ativado, revela:\n    - Frequência: Mensal\n    - Data final / Quantidade de parcelas: \"Repetir até [DD/MM/AAAA]\" ou \"Indefinidamente\".\n- Feedback de sucesso no rodapé: Botão de ação largo e fixo \"Salvar Lançamento (R$ 145,90)\" com foco acessível e área de toque > 48px."
+  }
+]
